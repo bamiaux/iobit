@@ -15,7 +15,14 @@ type Writer struct {
 	err   error
 }
 
+const (
+	CacheSize = 8
+)
+
 func NewWriterSize(dst io.Writer, size int) *Writer {
+	if size < CacheSize {
+		size = CacheSize
+	}
 	return &Writer{
 		data: make([]uint8, size),
 		dst:  dst,
@@ -32,7 +39,7 @@ func (w *Writer) WriteBits(bits uint, val uint32) {
 		w.cache <<= 32
 		w.fill -= 32
 		w.index += 4
-		if w.index+4 > len(w.data) {
+		if w.index+CacheSize > len(w.data) {
 			w.write()
 		}
 	}

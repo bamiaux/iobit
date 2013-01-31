@@ -23,7 +23,7 @@ func getNumBits(read, max, align int) int {
 	return bits
 }
 
-func MakeSource(size int) []uint8 {
+func makeSource(size int) []uint8 {
 	src := make([]uint8, size)
 	for i := range src {
 		src[i] = uint8(rand.Intn(0xFF))
@@ -31,10 +31,17 @@ func MakeSource(size int) []uint8 {
 	return src[:]
 }
 
+func flushCheck(t *testing.T, w *Writer) {
+	err := w.Flush()
+	if err != nil {
+		t.Fatal("unexpected error during flush", err)
+	}
+}
+
 func testWrites(t *testing.T, align int) {
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	src := MakeSource(512)
+	src := makeSource(512)
 	max := len(src) * 8
 	for read := 0; read < max; {
 		bits := getNumBits(read, max, align)
@@ -51,10 +58,7 @@ func testWrites(t *testing.T, align int) {
 		w.WriteBits(uint(bits), value)
 		read += bits
 	}
-	err := w.Flush()
-	if err != nil {
-		t.Fatal("error during write", err)
-	}
+	flushCheck(t, w)
 	if dst := buf.Bytes(); !bytes.Equal(src, dst) {
 		t.Log(hex.Dump(src))
 		t.Log(hex.Dump(dst))
@@ -84,4 +88,23 @@ func benchWrites(b *testing.B, align int) {
 
 func BenchmarkWrites(b *testing.B) {
 	benchWrites(b, 1)
+}
+
+func TestFlushOverflow(t *testing.T) {
+	var buf bytes.Buffer
+	w := NewWriterSize(&buf, 8)
+	w.Write64Bits(64, 0)
+	w.WriteBits(32, 0)
+	// test w.fill > 32 during flush
+	flushCheck(t, w)
+}
+
+func TestSmallWriter(t *testing.T) {
+	for i := CacheSize; i >= 0; i-- {
+		var buf bytes.Buffer
+		w := NewWriterSize(&buf, i)
+		w.Write64Bits(64, 0)
+		w.Write64Bits(64, 0)
+		flushCheck(t, w)
+	}
 }
