@@ -27,12 +27,6 @@ func NewWriter(dst io.Writer) *Writer {
 }
 
 func (w *Writer) WriteBits(bits uint, val uint32) {
-	if bits > 32 {
-		w.err = errors.New("iobit: too many bits")
-	}
-	if w.err != nil {
-		return
-	}
 	if w.fill+bits > 64 {
 		binary.BigEndian.PutUint32(w.data[w.index:], uint32(w.cache>>32))
 		w.cache <<= 32
