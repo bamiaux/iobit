@@ -41,6 +41,15 @@ func (w *Writer) WriteBits(bits uint, val uint32) {
 	w.fill += bits
 }
 
+func (w *Writer) Write64Bits(bits uint, val uint64) {
+	if bits > 32 {
+		w.WriteBits(bits-32, uint32(val>>32))
+		bits = 32
+		val &= 0xFFFFFFFF
+	}
+	w.WriteBits(bits, uint32(val))
+}
+
 func (w *Writer) write(force bool) {
 	if !force && w.index+4 <= len(w.data) {
 		return
