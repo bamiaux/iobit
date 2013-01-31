@@ -32,7 +32,9 @@ func (w *Writer) WriteBits(bits uint, val uint32) {
 		w.cache <<= 32
 		w.fill -= 32
 		w.index += 4
-		w.write(false)
+		if w.index+4 > len(w.data) {
+			w.write()
+		}
 	}
 	u := uint64(val)
 	u &= ^(^uint64(0) << bits)
@@ -50,10 +52,7 @@ func (w *Writer) Write64Bits(bits uint, val uint64) {
 	w.WriteBits(bits, uint32(val))
 }
 
-func (w *Writer) write(force bool) {
-	if !force && w.index+4 <= len(w.data) {
-		return
-	}
+func (w *Writer) write() {
 	if w.err == nil {
 		_, w.err = w.dst.Write(w.data[:w.index])
 	}
@@ -70,7 +69,7 @@ func (w *Writer) Flush() error {
 	if w.fill != 0 {
 		w.err = errors.New("iobit: unable to flush unaligned output")
 	}
-	w.write(true)
+	w.write()
 	return w.err
 }
 
