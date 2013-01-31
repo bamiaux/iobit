@@ -51,12 +51,8 @@ func (w *Writer) write(force bool) {
 	if !force && w.index+4 <= len(w.data) {
 		return
 	}
-	for i := 0; i < w.index && w.err == nil; {
-		n, err := w.dst.Write(w.data[i:w.index])
-		i += n
-		if err != nil {
-			w.err = err
-		}
+	if w.err == nil {
+		_, w.err = w.dst.Write(w.data[:w.index])
 	}
 	w.index = 0
 }
