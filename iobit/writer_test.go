@@ -55,7 +55,7 @@ func testWrites(t *testing.T, align int) {
 		block := binary.BigEndian.Uint64(src[idx:])
 		block >>= uint(64 - bits - fill)
 		value := uint32(block & 0xFFFFFFFF)
-		w.WriteBits(uint(bits), value)
+		BigEndian.PutUint32(w, uint(bits), value)
 		read += bits
 	}
 	flushCheck(t, w)
@@ -80,7 +80,7 @@ func benchWrites(b *testing.B, align int) {
 		bits := uint(getNumBits(0, 1024, align))
 		value := rand.Uint32()
 		b.StartTimer()
-		w.WriteBits(bits, value)
+		BigEndian.PutUint32(w, bits, value)
 		b.StopTimer()
 		buf.Reset()
 	}
@@ -93,8 +93,8 @@ func BenchmarkWrites(b *testing.B) {
 func TestFlushOverflow(t *testing.T) {
 	var buf bytes.Buffer
 	w := NewWriterSize(&buf, 8)
-	w.Write64Bits(64, 0)
-	w.WriteBits(32, 0)
+	BigEndian.PutUint64(w, 64, 0)
+	BigEndian.PutUint32(w, 32, 0)
 	// test w.fill > 32 during flush
 	flushCheck(t, w)
 }
@@ -103,8 +103,8 @@ func TestSmallWriter(t *testing.T) {
 	for i := CacheSize; i >= 0; i-- {
 		var buf bytes.Buffer
 		w := NewWriterSize(&buf, i)
-		w.Write64Bits(64, 0)
-		w.Write64Bits(64, 0)
+		BigEndian.PutUint64(w, 64, 0)
+		BigEndian.PutUint64(w, 64, 0)
 		flushCheck(t, w)
 	}
 }

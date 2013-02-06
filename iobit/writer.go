@@ -19,6 +19,14 @@ const (
 	CacheSize = 8
 )
 
+type bigEndian struct{}
+type littleEndian struct{}
+
+var (
+	BigEndian    bigEndian
+	LittleEndian littleEndian
+)
+
 func NewWriterSize(dst io.Writer, size int) *Writer {
 	if size < CacheSize {
 		size = CacheSize
@@ -33,16 +41,20 @@ func NewWriter(dst io.Writer) *Writer {
 	return NewWriterSize(dst, 64)
 }
 
-func (w *Writer) WriteBits(bits uint, val uint32) {
-	if w.fill+bits > 64 {
-		binary.BigEndian.PutUint32(w.data[w.index:], uint32(w.cache>>32))
-		w.cache <<= 32
-		w.fill -= 32
-		w.index += 4
-		if w.index+CacheSize > len(w.data) {
-			w.write()
-		}
+func (w *Writer) flushCache(bits uint) {
+	if w.fill+bits <= 64 {
+		return
 	}
+	binary.BigEndian.PutUint32(w.data[w.index:], uint32(w.cache>>32))
+	w.cache <<= 32
+	w.fill -= 32
+	w.index += 4
+	if w.index+CacheSize > len(w.data) {
+		w.write()
+	}
+}
+
+func (w *Writer) writeCache(bits uint, val uint32) {
 	u := uint64(val)
 	u &= ^(^uint64(0) << bits)
 	u <<= 64 - w.fill - bits
@@ -50,13 +62,37 @@ func (w *Writer) WriteBits(bits uint, val uint32) {
 	w.fill += bits
 }
 
-func (w *Writer) Write64Bits(bits uint, val uint64) {
+func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
+	w.flushCache(bits)
+	w.writeCache(bits, val)
+}
+
+func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
+	w.flushCache(bits)
+	for bits > 8 {
+		w.writeCache(8, val)
+		val >>= 8
+		bits -= 8
+	}
+	w.writeCache(bits, val)
+}
+
+func (bigEndian) PutUint64(w *Writer, bits uint, val uint64) {
 	if bits > 32 {
-		w.WriteBits(bits-32, uint32(val>>32))
+		BigEndian.PutUint32(w, bits-32, uint32(val>>32))
 		bits = 32
 		val &= 0xFFFFFFFF
 	}
-	w.WriteBits(bits, uint32(val))
+	BigEndian.PutUint32(w, bits, uint32(val))
+}
+
+func (littleEndian) PutUint64(w *Writer, bits uint, val uint64) {
+	if bits > 32 {
+		LittleEndian.PutUint32(w, bits-32, uint32(val&0xFFFFFFFF))
+		bits = 32
+		val >>= 32
+	}
+	LittleEndian.PutUint32(w, bits, uint32(val))
 }
 
 func (w *Writer) write() {
