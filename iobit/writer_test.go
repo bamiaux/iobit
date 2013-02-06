@@ -38,6 +38,15 @@ func flushCheck(t *testing.T, w *Writer) {
 	}
 }
 
+func compare(t *testing.T, src, dst []uint8) {
+	if bytes.Equal(src, dst) {
+		return
+	}
+	t.Log(hex.Dump(src))
+	t.Log(hex.Dump(dst))
+	t.Fatal("invalid output")
+}
+
 func testWrites(t *testing.T, align int) {
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
@@ -59,17 +68,21 @@ func testWrites(t *testing.T, align int) {
 		read += bits
 	}
 	flushCheck(t, w)
-	if dst := buf.Bytes(); !bytes.Equal(src, dst) {
-		t.Log(hex.Dump(src))
-		t.Log(hex.Dump(dst))
-		t.Fatal("invalid output")
-	}
+	compare(t, src, buf.Bytes())
 }
 
 func TestWrites(t *testing.T) {
 	for i := 32; i > 0; i >>= 1 {
 		testWrites(t, i)
 	}
+}
+
+func TestLittleEndian(t *testing.T) {
+	var buf bytes.Buffer
+	w := NewWriter(&buf)
+	LittleEndian.PutUint64(w, 64, 0x0123456789ABCDEF)
+	w.Flush()
+	compare(t, buf.Bytes(), []uint8{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
 }
 
 func benchWrites(b *testing.B, align int) {
