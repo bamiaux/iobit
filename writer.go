@@ -7,8 +7,8 @@ import (
 )
 
 type Writer struct {
-	cache uint64
 	dst   io.Writer
+	cache uint64
 	fill  uint
 	err   error
 }
@@ -78,10 +78,12 @@ func (littleEndian) PutUint64(w *Writer, bits uint, val uint64) {
 	LittleEndian.PutUint32(w, bits, uint32(val))
 }
 
-func (w *Writer) write(data []uint8) {
+func (w *Writer) write(src []uint8) (int, error) {
+	n := 0
 	if w.err == nil {
-		_, w.err = w.dst.Write(data)
+		n, w.err = w.dst.Write(src)
 	}
+	return n, w.err
 }
 
 func (w *Writer) Flush() error {
@@ -93,7 +95,7 @@ func (w *Writer) Flush() error {
 		w.fill -= 8
 		idx++
 	}
-	if w.fill != 0 {
+	if w.err == nil && w.fill != 0 {
 		w.err = ErrUnderflow
 	}
 	w.write(data[:])
@@ -101,9 +103,6 @@ func (w *Writer) Flush() error {
 }
 
 func (w *Writer) Write(p []uint8) (int, error) {
-	err := w.Flush()
-	if err != nil {
-		return 0, err
-	}
-	return w.dst.Write(p)
+	w.Flush()
+	return w.write(p)
 }
