@@ -76,6 +76,12 @@ func TestWrites(t *testing.T) {
 		testWrites(w, t, i, src)
 		compare(t, src, buf.Bytes())
 	}
+	dst := make([]uint8, len(src))
+	for i := 32; i > 0; i >>= 1 {
+		w := NewRawWriter(dst)
+		testWrites(w, t, i, src)
+		compare(t, src, dst)
+	}
 }
 
 func TestLittleEndian(t *testing.T) {
@@ -96,16 +102,16 @@ func benchWrites(b *testing.B, align int) {
 		bits[i] = getNumBits(0, size*8, align)
 		values[i] = rand.Uint32()
 	}
-	var buf bytes.Buffer
-	w := NewWriter(&buf)
+	buf := make([]uint8, size)
+	w := NewRawWriter(buf)
 	b.StartTimer()
-	for i := int(0); i < b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		n := i & 0xFFFF
 		bit := bits[n]
 		idx += bit
 		if idx > size*8 {
 			idx = 0
-			buf.Reset()
+			w = NewRawWriter(buf)
 		}
 		BigEndian.PutUint32(w, uint(bit), values[n])
 	}

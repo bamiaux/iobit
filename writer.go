@@ -18,6 +18,7 @@ type bigEndian struct{}
 type littleEndian struct{}
 
 var (
+	ErrOverflow  = errors.New("bit overflow")
 	ErrUnderflow = errors.New("bit underflow")
 	BigEndian    bigEndian
 	LittleEndian littleEndian
@@ -25,6 +26,23 @@ var (
 
 func NewWriter(dst io.Writer) *Writer {
 	return &Writer{dst: dst}
+}
+
+type RawWriter struct {
+	dst []uint8
+}
+
+func (w *RawWriter) Write(p []uint8) (int, error) {
+	n := copy(w.dst, p)
+	w.dst = w.dst[n:]
+	if n != len(p) {
+		return n, ErrOverflow
+	}
+	return n, nil
+}
+
+func NewRawWriter(dst []uint8) *Writer {
+	return NewWriter(&RawWriter{dst: dst})
 }
 
 func (w *Writer) flushCache(bits uint) {
