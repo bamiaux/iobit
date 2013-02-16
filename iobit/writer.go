@@ -8,16 +8,10 @@ import (
 
 type Writer struct {
 	cache uint64
-	data  []uint8
 	dst   io.Writer
-	index int
 	fill  uint
 	err   error
 }
-
-const (
-	CacheSize = 8
-)
 
 type bigEndian struct{}
 type littleEndian struct{}
@@ -27,31 +21,19 @@ var (
 	LittleEndian littleEndian
 )
 
-func NewWriterSize(dst io.Writer, size int) *Writer {
-	if size < CacheSize {
-		size = CacheSize
-	}
-	return &Writer{
-		data: make([]uint8, size),
-		dst:  dst,
-	}
-}
-
 func NewWriter(dst io.Writer) *Writer {
-	return NewWriterSize(dst, 64)
+	return &Writer{dst: dst}
 }
 
 func (w *Writer) flushCache(bits uint) {
 	if w.fill+bits <= 64 {
 		return
 	}
-	binary.BigEndian.PutUint32(w.data[w.index:], uint32(w.cache>>32))
+	var data [4]uint8
+	binary.BigEndian.PutUint32(data[:], uint32(w.cache>>32))
 	w.cache <<= 32
 	w.fill -= 32
-	w.index += 4
-	if w.index+CacheSize > len(w.data) {
-		w.write()
-	}
+	w.write(data[:])
 }
 
 func (w *Writer) writeCache(bits uint, val uint32) {
@@ -95,24 +77,25 @@ func (littleEndian) PutUint64(w *Writer, bits uint, val uint64) {
 	LittleEndian.PutUint32(w, bits, uint32(val))
 }
 
-func (w *Writer) write() {
+func (w *Writer) write(data []uint8) {
 	if w.err == nil {
-		_, w.err = w.dst.Write(w.data[:w.index])
+		_, w.err = w.dst.Write(data)
 	}
-	w.index = 0
 }
 
 func (w *Writer) Flush() error {
+	var data [8]uint8
+	idx := 0
 	for w.fill >= 8 {
-		w.data[w.index] = uint8(w.cache >> 56)
+		data[idx] = uint8(w.cache >> 56)
 		w.cache <<= 8
 		w.fill -= 8
-		w.index++
+		idx++
 	}
 	if w.fill != 0 {
 		w.err = errors.New("iobit: unable to flush unaligned output")
 	}
-	w.write()
+	w.write(data[:])
 	return w.err
 }
 

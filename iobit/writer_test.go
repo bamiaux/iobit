@@ -104,22 +104,12 @@ func BenchmarkWrites(b *testing.B) {
 }
 
 func TestFlushOverflow(t *testing.T) {
-	for i := 0; i < CacheSize*2; i++ {
+	for i := 0; i < 64; i++ {
 		var buf bytes.Buffer
-		w := NewWriterSize(&buf, CacheSize)
+		w := NewWriter(&buf)
 		for j := 0; j < i; j++ {
 			BigEndian.PutUint32(w, 8, 0)
 		}
-		flushCheck(t, w)
-	}
-}
-
-func TestSmallWriter(t *testing.T) {
-	for i := CacheSize; i >= 0; i-- {
-		var buf bytes.Buffer
-		w := NewWriterSize(&buf, i)
-		BigEndian.PutUint64(w, 64, 0)
-		BigEndian.PutUint64(w, 64, 0)
 		flushCheck(t, w)
 	}
 }
