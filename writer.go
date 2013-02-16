@@ -8,6 +8,7 @@ import (
 
 type Writer struct {
 	dst   io.Writer
+	data  [8]uint8
 	cache uint64
 	fill  uint
 	err   error
@@ -30,11 +31,10 @@ func (w *Writer) flushCache(bits uint) {
 	if w.fill+bits <= 64 {
 		return
 	}
-	var data [4]uint8
-	binary.BigEndian.PutUint32(data[:], uint32(w.cache>>32))
+	binary.BigEndian.PutUint32(w.data[:], uint32(w.cache>>32))
 	w.cache <<= 32
 	w.fill -= 32
-	w.write(data[:])
+	w.write(w.data[:4])
 }
 
 func (w *Writer) writeCache(bits uint, val uint32) {
@@ -87,10 +87,9 @@ func (w *Writer) write(src []uint8) (int, error) {
 }
 
 func (w *Writer) Flush() error {
-	var data [8]uint8
 	idx := 0
 	for w.fill >= 8 {
-		data[idx] = uint8(w.cache >> 56)
+		w.data[idx] = uint8(w.cache >> 56)
 		w.cache <<= 8
 		w.fill -= 8
 		idx++
@@ -98,7 +97,7 @@ func (w *Writer) Flush() error {
 	if w.err == nil && w.fill != 0 {
 		w.err = ErrUnderflow
 	}
-	w.write(data[:])
+	w.write(w.data[:idx])
 	return w.err
 }
 
