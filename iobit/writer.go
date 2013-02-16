@@ -17,6 +17,7 @@ type bigEndian struct{}
 type littleEndian struct{}
 
 var (
+	ErrUnderflow = errors.New("bit underflow")
 	BigEndian    bigEndian
 	LittleEndian littleEndian
 )
@@ -93,7 +94,7 @@ func (w *Writer) Flush() error {
 		idx++
 	}
 	if w.fill != 0 {
-		w.err = errors.New("iobit: unable to flush unaligned output")
+		w.err = ErrUnderflow
 	}
 	w.write(data[:])
 	return w.err
