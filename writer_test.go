@@ -47,10 +47,7 @@ func compare(t *testing.T, src, dst []uint8) {
 	t.Fatal("invalid output")
 }
 
-func testWrites(t *testing.T, align int) {
-	var buf bytes.Buffer
-	w := NewWriter(&buf)
-	src := makeSource(512)
+func testWrites(w *Writer, t *testing.T, align int, src []uint8) {
 	max := len(src) * 8
 	for read := 0; read < max; {
 		bits := getNumBits(read, max, align)
@@ -68,12 +65,16 @@ func testWrites(t *testing.T, align int) {
 		read += bits
 	}
 	flushCheck(t, w)
-	compare(t, src, buf.Bytes())
 }
 
 func TestWrites(t *testing.T) {
+	src := makeSource(512)
+	var buf bytes.Buffer
 	for i := 32; i > 0; i >>= 1 {
-		testWrites(t, i)
+		buf.Reset()
+		w := NewWriter(&buf)
+		testWrites(w, t, i, src)
+		compare(t, src, buf.Bytes())
 	}
 }
 
@@ -87,15 +88,26 @@ func TestLittleEndian(t *testing.T) {
 
 func benchWrites(b *testing.B, align int) {
 	b.StopTimer()
+	size := 1 << 16
+	idx := 0
+	bits := make([]int, size)
+	values := make([]uint32, size)
+	for i := 0; i < size; i++ {
+		bits[i] = getNumBits(0, size*8, align)
+		values[i] = rand.Uint32()
+	}
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	for i := 0; i < b.N; i++ {
-		bits := uint(getNumBits(0, 1024, align))
-		value := rand.Uint32()
-		b.StartTimer()
-		BigEndian.PutUint32(w, bits, value)
-		b.StopTimer()
-		buf.Reset()
+	b.StartTimer()
+	for i := int(0); i < b.N; i++ {
+		n := i & 0xFFFF
+		bit := bits[n]
+		idx += bit
+		if idx > size*8 {
+			idx = 0
+			buf.Reset()
+		}
+		BigEndian.PutUint32(w, uint(bit), values[n])
 	}
 }
 
