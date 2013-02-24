@@ -1,7 +1,6 @@
 package iobit
 
 import (
-	"encoding/binary"
 	"errors"
 )
 
@@ -26,18 +25,6 @@ func NewWriter(dst []uint8) *Writer {
 	return &Writer{dst: dst}
 }
 
-func (w *Writer) flushCache(bits uint) {
-	if w.fill+bits <= 64 {
-		return
-	}
-	if w.idx+4 <= len(w.dst) {
-		binary.BigEndian.PutUint32(w.dst[w.idx:], uint32(w.cache>>32))
-	}
-	w.idx += 4
-	w.cache <<= 32
-	w.fill -= 32
-}
-
 func (w *Writer) writeCache(bits uint, val uint32) {
 	u := uint64(val)
 	u &= ^(^uint64(0) << bits)
@@ -47,12 +34,34 @@ func (w *Writer) writeCache(bits uint, val uint32) {
 }
 
 func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
-	w.flushCache(bits)
+	// manually inlined until compiler improves
+	if w.fill+bits > 64 {
+		if w.idx+4 <= len(w.dst) {
+			w.dst[w.idx+0] = uint8(w.cache >> 56)
+			w.dst[w.idx+1] = uint8(w.cache >> 48)
+			w.dst[w.idx+2] = uint8(w.cache >> 40)
+			w.dst[w.idx+3] = uint8(w.cache >> 32)
+		}
+		w.idx += 4
+		w.cache <<= 32
+		w.fill -= 32
+	}
 	w.writeCache(bits, val)
 }
 
 func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
-	w.flushCache(bits)
+	// manually inlined until compiler improves
+	if w.fill+bits > 64 {
+		if w.idx+4 <= len(w.dst) {
+			w.dst[w.idx+0] = uint8(w.cache >> 56)
+			w.dst[w.idx+1] = uint8(w.cache >> 48)
+			w.dst[w.idx+2] = uint8(w.cache >> 40)
+			w.dst[w.idx+3] = uint8(w.cache >> 32)
+		}
+		w.idx += 4
+		w.cache <<= 32
+		w.fill -= 32
+	}
 	for bits > 8 {
 		w.writeCache(8, val)
 		val >>= 8
