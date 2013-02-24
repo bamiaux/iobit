@@ -8,16 +8,16 @@ import (
 	"testing"
 )
 
-func getNumBits(read, max, align int) int {
+func getNumBits(read, max, chunk, align int) int {
 	bits := 1
-	if align != 32 {
-		bits += rand.Intn(32 / align)
+	if align != chunk {
+		bits += rand.Intn(chunk / align)
 	}
 	bits *= align
 	if read+bits > max {
 		bits = max - read
 	}
-	if bits > 32 {
+	if bits > chunk {
 		panic("too many bits")
 	}
 	return bits
@@ -50,7 +50,7 @@ func compare(t *testing.T, src, dst []uint8) {
 func testWrites(w *Writer, t *testing.T, align int, src []uint8) {
 	max := len(src) * 8
 	for read := 0; read < max; {
-		bits := getNumBits(read, max, align)
+		bits := getNumBits(read, max, 32, align)
 		idx := read >> 3
 		fill := read - idx*8
 		if idx*8 > max-64 {
@@ -111,37 +111,6 @@ func TestLittleEndianWrite(t *testing.T) {
 	compare(t, buf, []uint8{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
 }
 
-func benchmarkWrites(b *testing.B, align int) {
-	b.StopTimer()
-	size := 1 << 12
-	buf := make([]uint8, size)
-	bits := make([]uint, size)
-	values := make([]uint32, size)
-	idx := 0
-	last := 0
-	for i := 0; i < size; i++ {
-		val := getNumBits(idx, size*8, align)
-		idx += val
-		if val != 0 {
-			last = i + 1
-		}
-		bits[i] = uint(val)
-		values[i] = rand.Uint32()
-	}
-	b.SetBytes(int64(size))
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		w := NewWriter(buf)
-		for j := 0; j < last; j++ {
-			BigEndian.PutUint32(w, bits[j], values[j])
-		}
-	}
-}
-
-func BenchmarkBigEndian1(b *testing.B)  { benchmarkWrites(b, 1) }
-func BenchmarkBigEndian8(b *testing.B)  { benchmarkWrites(b, 8) }
-func BenchmarkBigEndian32(b *testing.B) { benchmarkWrites(b, 32) }
-
 func checkError(t *testing.T, expected, actual error) {
 	if actual != expected {
 		t.Fatal("expecting", expected, "got", actual)
@@ -163,3 +132,70 @@ func TestFlushErrors(t *testing.T) {
 	BigEndian.PutUint32(w, 17, 0)
 	checkError(t, ErrOverflow, w.Flush())
 }
+
+func prepareBenchmark(size, chunk, align int) ([]uint8, []uint, []uint64, int) {
+	buf := make([]uint8, size)
+	bits := make([]uint, size)
+	values := make([]uint64, size)
+	idx := 0
+	last := 0
+	for i := 0; i < size; i++ {
+		val := getNumBits(idx, size*8, chunk, align)
+		idx += val
+		if val != 0 {
+			last = i + 1
+		}
+		bits[i] = uint(val)
+		values[i] = uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
+	}
+	return buf, bits, values, last
+}
+
+func bigWrite32(w *Writer, bits []uint, values []uint64, last int) {
+	for j := 0; j < last; j++ {
+		BigEndian.PutUint32(w, bits[j], uint32(values[j]))
+	}
+}
+
+func bigWrite64(w *Writer, bits []uint, values []uint64, last int) {
+	for j := 0; j < last; j++ {
+		BigEndian.PutUint64(w, bits[j], values[j])
+	}
+}
+
+func littleWrite32(w *Writer, bits []uint, values []uint64, last int) {
+	for j := 0; j < last; j++ {
+		LittleEndian.PutUint32(w, bits[j], uint32(values[j]))
+	}
+}
+
+func littleWrite64(w *Writer, bits []uint, values []uint64, last int) {
+	for j := 0; j < last; j++ {
+		LittleEndian.PutUint64(w, bits[j], values[j])
+	}
+}
+
+type WriteOp func(*Writer, []uint, []uint64, int)
+
+func benchmarkWrites(b *testing.B, op WriteOp, chunk, align int) {
+	b.StopTimer()
+	size := 1 << 12
+	buf, bits, values, last := prepareBenchmark(size, chunk, align)
+	b.SetBytes(int64(len(buf)))
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		w := NewWriter(buf)
+		op(w, bits, values, last)
+	}
+}
+
+func BenchmarkBigEndianWriteUint32Align1(b *testing.B)     { benchmarkWrites(b, bigWrite32, 32, 1) }
+func BenchmarkBigEndianWriteUint32Align32(b *testing.B)    { benchmarkWrites(b, bigWrite32, 32, 32) }
+func BenchmarkBigEndianWriteUint64Align1(b *testing.B)     { benchmarkWrites(b, bigWrite64, 64, 1) }
+func BenchmarkBigEndianWriteUint64Align32(b *testing.B)    { benchmarkWrites(b, bigWrite64, 64, 32) }
+func BenchmarkBigEndianWriteUint64Align64(b *testing.B)    { benchmarkWrites(b, bigWrite64, 64, 64) }
+func BenchmarkLittleEndianWriteUint32Align1(b *testing.B)  { benchmarkWrites(b, littleWrite32, 32, 1) }
+func BenchmarkLittleEndianWriteUint32Align32(b *testing.B) { benchmarkWrites(b, littleWrite32, 32, 32) }
+func BenchmarkLittleEndianWriteUint64Align1(b *testing.B)  { benchmarkWrites(b, littleWrite64, 64, 1) }
+func BenchmarkLittleEndianWriteUint64Align32(b *testing.B) { benchmarkWrites(b, littleWrite64, 64, 32) }
+func BenchmarkLittleEndianWriteUint64Align64(b *testing.B) { benchmarkWrites(b, littleWrite64, 64, 64) }
