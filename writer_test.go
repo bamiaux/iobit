@@ -77,7 +77,33 @@ func TestWrites(t *testing.T) {
 	}
 }
 
-func TestLittleEndian(t *testing.T) {
+func TestSmall64BigEndianWrite(t *testing.T) {
+	buf := make([]uint8, 5)
+	w := NewWriter(buf)
+	BigEndian.PutUint64(w, 33, 0xFFFFFFFE00000001)
+	BigEndian.PutUint32(w, 7, 0)
+	w.Flush()
+	compare(t, buf, []uint8{0x00, 0x00, 0x00, 0x00, 0x80})
+}
+
+func TestSmall64LittleEndianWrite(t *testing.T) {
+	buf := make([]uint8, 5)
+	w := NewWriter(buf)
+	LittleEndian.PutUint64(w, 33, 0xFFFFFFFE00000001)
+	LittleEndian.PutUint32(w, 7, 0)
+	w.Flush()
+	compare(t, buf, []uint8{0x01, 0x00, 0x00, 0x00, 0x00})
+}
+
+func TestBigEndianWrite(t *testing.T) {
+	buf := make([]uint8, 8)
+	w := NewWriter(buf)
+	BigEndian.PutUint64(w, 64, 0x0123456789ABCDEF)
+	w.Flush()
+	compare(t, buf, []uint8{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF})
+}
+
+func TestLittleEndianWrite(t *testing.T) {
 	buf := make([]uint8, 8)
 	w := NewWriter(buf)
 	LittleEndian.PutUint64(w, 64, 0x0123456789ABCDEF)

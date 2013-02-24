@@ -65,8 +65,8 @@ func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
 
 func (bigEndian) PutUint64(w *Writer, bits uint, val uint64) {
 	if bits > 32 {
-		BigEndian.PutUint32(w, bits-32, uint32(val>>32))
-		bits = 32
+		bits -= 32
+		BigEndian.PutUint32(w, 32, uint32(val>>bits))
 		val &= 0xFFFFFFFF
 	}
 	BigEndian.PutUint32(w, bits, uint32(val))
@@ -74,8 +74,8 @@ func (bigEndian) PutUint64(w *Writer, bits uint, val uint64) {
 
 func (littleEndian) PutUint64(w *Writer, bits uint, val uint64) {
 	if bits > 32 {
-		LittleEndian.PutUint32(w, bits-32, uint32(val&0xFFFFFFFF))
-		bits = 32
+		LittleEndian.PutUint32(w, 32, uint32(val&0xFFFFFFFF))
+		bits -= 32
 		val >>= 32
 	}
 	LittleEndian.PutUint32(w, bits, uint32(val))
