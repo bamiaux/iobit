@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"math/rand"
+	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -131,6 +133,41 @@ func TestFlushErrors(t *testing.T) {
 	w = NewWriter(buf)
 	BigEndian.PutUint32(w, 17, 0)
 	checkError(t, ErrOverflow, w.Flush())
+}
+
+func expect(t *testing.T, a, b interface{}) {
+	if reflect.DeepEqual(a, b) {
+		return
+	}
+	typea := reflect.TypeOf(a)
+	typeb := reflect.TypeOf(b)
+	_, file, line, _ := runtime.Caller(1)
+	t.Fatalf("%v:%v expectation failed %v(%v) != %v(%v)\n",
+		file, line, typea, a, typeb, b)
+}
+
+func TestWriteHelpers(t *testing.T) {
+	buf := []uint8{0x00}
+	w := NewWriter(buf[:])
+	expect(t, int(8), w.Bits())
+	BigEndian.PutUint32(w, 1, 0)
+	expect(t, int(1), w.Index())
+	expect(t, int(7), w.Bits())
+	BigEndian.PutUint32(w, 1, 1)
+	BigEndian.PutUint32(w, 5, 0)
+	BigEndian.PutUint32(w, 1, 1)
+	err := w.Flush()
+	expect(t, buf, []uint8{0x41})
+	t.Log(w)
+	expect(t, int(8), w.Index())
+	expect(t, int(0), w.Bits())
+	expect(t, 0, len(w.Bytes()))
+	expect(t, nil, err)
+	BigEndian.PutUint32(w, 1, 0)
+	expect(t, int(9), w.Index())
+	expect(t, int(0), w.Bits())
+	expect(t, 0, len(w.Bytes()))
+	expect(t, ErrOverflow, w.Flush())
 }
 
 func prepareBenchmark(size, chunk, align int) ([]uint8, []uint, []uint64, int) {

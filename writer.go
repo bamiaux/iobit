@@ -110,3 +110,28 @@ func (w *Writer) Write(p []uint8) (int, error) {
 	}
 	return n, nil
 }
+
+func (w *Writer) Index() int {
+	return w.idx<<3 + int(w.fill)
+}
+
+func imin(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}
+
+func (w *Writer) Bits() int {
+	size := len(w.dst)
+	return size<<3 - imin(w.idx<<3+int(w.fill), size<<3)
+}
+
+func (w *Writer) Bytes() []uint8 {
+	skip := imin(w.idx+int(w.fill>>3), len(w.dst))
+	last := len(w.dst) - skip
+	if last == 0 {
+		return w.dst[0:0]
+	}
+	return w.dst[skip:last]
+}
