@@ -92,33 +92,25 @@ func TestLittleEndian(t *testing.T) {
 	compare(t, buf.Bytes(), []uint8{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
 }
 
-func benchWrites(b *testing.B, align int) {
+func BenchmarkWrites(b *testing.B) {
 	b.StopTimer()
-	size := 1 << 16
-	idx := 0
-	bits := make([]int, size)
+	align := 1
+	size := 1 << 12
+	buf := make([]uint8, size)
+	bits := make([]uint, size)
 	values := make([]uint32, size)
 	for i := 0; i < size; i++ {
-		bits[i] = getNumBits(0, size*8, align)
+		bits[i] = uint(getNumBits(0, size*8, align))
 		values[i] = rand.Uint32()
 	}
-	buf := make([]uint8, size)
-	w := NewRawWriter(buf)
+	b.SetBytes(int64(size))
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		n := i & 0xFFFF
-		bit := bits[n]
-		idx += bit
-		if idx > size*8 {
-			idx = 0
-			w = NewRawWriter(buf)
+		w := NewRawWriter(buf)
+		for j := 0; j < size; j++ {
+			BigEndian.PutUint32(w, bits[j], values[j])
 		}
-		BigEndian.PutUint32(w, uint(bit), values[n])
 	}
-}
-
-func BenchmarkWrites(b *testing.B) {
-	benchWrites(b, 1)
 }
 
 func TestFlushOverflow(t *testing.T) {
