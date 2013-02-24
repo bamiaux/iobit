@@ -25,15 +25,8 @@ func NewWriter(dst []uint8) *Writer {
 	return &Writer{dst: dst}
 }
 
-func (w *Writer) writeCache(bits uint, val uint32) {
-	u := uint64(val)
-	u &= ^(^uint64(0) << bits)
-	u <<= 64 - w.fill - bits
-	w.cache |= u
-	w.fill += bits
-}
-
 func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
+	u := uint64(val)
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
 		if w.idx+4 <= len(w.dst) {
@@ -46,7 +39,10 @@ func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
 		w.cache <<= 32
 		w.fill -= 32
 	}
-	w.writeCache(bits, val)
+	u &= ^(^uint64(0) << bits)
+	u <<= 64 - w.fill - bits
+	w.fill += bits
+	w.cache |= u
 }
 
 func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
@@ -77,8 +73,8 @@ func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
 
 func (bigEndian) PutUint64(w *Writer, bits uint, val uint64) {
 	if bits > 32 {
-		bits -= 32
-		BigEndian.PutUint32(w, 32, uint32(val>>bits))
+		BigEndian.PutUint32(w, bits-32, uint32(val>>32))
+		bits = 32
 		val &= 0xFFFFFFFF
 	}
 	BigEndian.PutUint32(w, bits, uint32(val))
