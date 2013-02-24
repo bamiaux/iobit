@@ -69,57 +69,71 @@ func testWrites(w *Writer, t *testing.T, align int, src []uint8) {
 
 func TestWrites(t *testing.T) {
 	src := makeSource(512)
-	var buf bytes.Buffer
-	for i := 32; i > 0; i >>= 1 {
-		buf.Reset()
-		w := NewWriter(&buf)
-		testWrites(w, t, i, src)
-		compare(t, src, buf.Bytes())
-	}
 	dst := make([]uint8, len(src))
 	for i := 32; i > 0; i >>= 1 {
-		w := NewRawWriter(dst)
+		w := NewWriter(dst)
 		testWrites(w, t, i, src)
 		compare(t, src, dst)
 	}
 }
 
 func TestLittleEndian(t *testing.T) {
-	var buf bytes.Buffer
-	w := NewWriter(&buf)
+	buf := make([]uint8, 8)
+	w := NewWriter(buf)
 	LittleEndian.PutUint64(w, 64, 0x0123456789ABCDEF)
 	w.Flush()
-	compare(t, buf.Bytes(), []uint8{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
+	compare(t, buf, []uint8{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
 }
 
-func BenchmarkWrites(b *testing.B) {
+func benchmarkWrites(b *testing.B, align int) {
 	b.StopTimer()
-	align := 1
 	size := 1 << 12
 	buf := make([]uint8, size)
 	bits := make([]uint, size)
 	values := make([]uint32, size)
+	idx := 0
+	last := 0
 	for i := 0; i < size; i++ {
-		bits[i] = uint(getNumBits(0, size*8, align))
+		val := getNumBits(idx, size*8, align)
+		idx += val
+		if val != 0 {
+			last = i + 1
+		}
+		bits[i] = uint(val)
 		values[i] = rand.Uint32()
 	}
 	b.SetBytes(int64(size))
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		w := NewRawWriter(buf)
-		for j := 0; j < size; j++ {
+		w := NewWriter(buf)
+		for j := 0; j < last; j++ {
 			BigEndian.PutUint32(w, bits[j], values[j])
 		}
 	}
 }
 
-func TestFlushOverflow(t *testing.T) {
-	for i := 0; i < 64; i++ {
-		var buf bytes.Buffer
-		w := NewWriter(&buf)
-		for j := 0; j < i; j++ {
-			BigEndian.PutUint32(w, 8, 0)
-		}
-		flushCheck(t, w)
+func BenchmarkBigEndian1(b *testing.B)  { benchmarkWrites(b, 1) }
+func BenchmarkBigEndian8(b *testing.B)  { benchmarkWrites(b, 8) }
+func BenchmarkBigEndian32(b *testing.B) { benchmarkWrites(b, 32) }
+
+func checkError(t *testing.T, expected, actual error) {
+	if actual != expected {
+		t.Fatal("expecting", expected, "got", actual)
 	}
+}
+
+func TestFlushErrors(t *testing.T) {
+	buf := make([]uint8, 2)
+
+	w := NewWriter(buf)
+	BigEndian.PutUint32(w, 9, 0)
+	checkError(t, ErrUnderflow, w.Flush())
+
+	w = NewWriter(buf)
+	BigEndian.PutUint32(w, 16, 0)
+	checkError(t, nil, w.Flush())
+
+	w = NewWriter(buf)
+	BigEndian.PutUint32(w, 17, 0)
+	checkError(t, ErrOverflow, w.Flush())
 }
