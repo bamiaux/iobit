@@ -9,7 +9,7 @@ type Writer struct {
 	dst   []uint8
 	cache uint64
 	fill  uint
-	err   error
+	idx   int
 }
 
 type bigEndian struct{}
@@ -30,12 +30,10 @@ func (w *Writer) flushCache(bits uint) {
 	if w.fill+bits <= 64 {
 		return
 	}
-	if len(w.dst) < 4 {
-		w.err = ErrOverflow
-		return
+	if w.idx+4 <= len(w.dst) {
+		binary.BigEndian.PutUint32(w.dst[w.idx:], uint32(w.cache>>32))
 	}
-	binary.BigEndian.PutUint32(w.dst, uint32(w.cache>>32))
-	w.dst = w.dst[4:]
+	w.idx += 4
 	w.cache <<= 32
 	w.fill -= 32
 }
@@ -82,27 +80,33 @@ func (littleEndian) PutUint64(w *Writer, bits uint, val uint64) {
 }
 
 func (w *Writer) Flush() error {
-	for w.fill >= 8 && len(w.dst) > 0 {
-		w.dst[0] = uint8(w.cache >> 56)
-		w.dst = w.dst[1:]
+	for w.fill >= 8 && w.idx < len(w.dst) {
+		w.dst[w.idx] = uint8(w.cache >> 56)
+		w.idx += 1
 		w.cache <<= 8
 		w.fill -= 8
 	}
-	if w.err == nil && w.fill != 0 {
-		w.err = ErrOverflow
-		if len(w.dst) != 0 {
-			w.err = ErrUnderflow
-		}
+	if w.idx+int(w.fill) > len(w.dst) {
+		return ErrOverflow
 	}
-	return w.err
+	if w.fill != 0 {
+		return ErrUnderflow
+	}
+	return nil
 }
 
 func (w *Writer) Write(p []uint8) (int, error) {
-	w.Flush()
-	n := copy(w.dst, p)
-	w.dst = w.dst[n:]
-	if n != len(p) {
-		w.err = ErrOverflow
+	err := w.Flush()
+	if err != nil {
+		return 0, err
 	}
-	return n, w.err
+	n := 0
+	if w.idx < len(w.dst) {
+		n = copy(w.dst[w.idx:], p)
+	}
+	w.idx += len(p)
+	if n != len(p) {
+		return n, ErrOverflow
+	}
+	return n, nil
 }
