@@ -50,6 +50,9 @@ func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
 }
 
 func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
+	val = bswap32(val)
+	left, right := bits&7, bits&0xF8
+	sub := val >> (24 - right)
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
 		if w.idx+4 <= len(w.dst) {
@@ -62,12 +65,14 @@ func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
 		w.cache <<= 32
 		w.fill -= 32
 	}
-	for bits > 8 {
-		w.writeCache(8, val)
-		val >>= 8
-		bits -= 8
-	}
-	w.writeCache(bits, val)
+	mask := ^uint32(0) << left
+	sub &= ^mask
+	val >>= 32 - bits
+	val &= mask
+	u := uint64(val + sub)
+	u <<= 64 - w.fill - bits
+	w.fill += bits
+	w.cache |= u
 }
 
 func (bigEndian) PutUint64(w *Writer, bits uint, val uint64) {
