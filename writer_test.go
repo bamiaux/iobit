@@ -222,9 +222,10 @@ func benchmarkWrites(b *testing.B, op WriteOp, chunk, align int) {
 	size := 1 << 12
 	buf, bits, values, last := prepareBenchmark(size, chunk, align)
 	b.SetBytes(int64(len(buf)))
+	w := NewWriter(buf)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		w := NewWriter(buf)
+		w.Reset()
 		op(w, bits, values, last)
 	}
 }

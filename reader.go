@@ -155,3 +155,7 @@ func (r *Reader) Check() error {
 	}
 	return nil
 }
+
+func (r *Reader) Reset() {
+	r.idx = 0
+}

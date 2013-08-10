@@ -149,3 +149,8 @@ func (w *Writer) Bytes() []uint8 {
 	}
 	return w.dst[skip:last]
 }
+
+func (w *Writer) Reset() {
+	w.fill = 0
+	w.idx = 0
+}

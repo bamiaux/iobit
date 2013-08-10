@@ -158,9 +158,10 @@ func benchmarkReads(b *testing.B, op ReadOp, chunk, align int) {
 	size := 1 << 12
 	buf, bits, _, last := prepareBenchmark(size, chunk, align)
 	b.SetBytes(int64(len(buf)))
+	r := NewReader(buf)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		r := NewReader(buf)
+		r.Reset()
 		op(r, bits, last)
 	}
 }
