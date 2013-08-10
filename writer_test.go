@@ -162,7 +162,6 @@ func TestWriteHelpers(t *testing.T) {
 	BigEndian.PutUint32(w, 1, 1)
 	err := w.Flush()
 	expect(t, buf, []uint8{0x41})
-	t.Log(w)
 	expect(t, int(8), w.Index())
 	expect(t, int(0), w.Bits())
 	expect(t, 0, len(w.Bytes()))
