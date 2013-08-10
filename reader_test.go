@@ -154,12 +154,11 @@ func littleReadInt64(r *Reader, bits []uint, last int) {
 type ReadOp func(*Reader, []uint, int)
 
 func benchmarkReads(b *testing.B, op ReadOp, chunk, align int) {
-	b.StopTimer()
 	size := 1 << 12
 	buf, bits, _, last := prepareBenchmark(size, chunk, align)
 	b.SetBytes(int64(len(buf)))
 	r := NewReader(buf)
-	b.StartTimer()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Reset()
 		op(r, bits, last)

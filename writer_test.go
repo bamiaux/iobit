@@ -218,12 +218,11 @@ func littleWrite64(w *Writer, bits []uint, values []uint64, last int) {
 type WriteOp func(*Writer, []uint, []uint64, int)
 
 func benchmarkWrites(b *testing.B, op WriteOp, chunk, align int) {
-	b.StopTimer()
 	size := 1 << 12
 	buf, bits, values, last := prepareBenchmark(size, chunk, align)
 	b.SetBytes(int64(len(buf)))
 	w := NewWriter(buf)
-	b.StartTimer()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		w.Reset()
 		op(w, bits, values, last)
