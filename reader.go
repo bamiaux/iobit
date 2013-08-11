@@ -2,7 +2,38 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// Package iobit provides primitives for reading & writing bits
+/*
+Package iobit provides primitives for reading & writing bits
+
+The main purpose of this library is to remove the need to write
+custom bit-masks when reading or writing bitstreams, and to ease
+maintenance. This is true especially when you need to read/write
+data which is not aligned on bytes.
+
+For example, with iobit you can read an MPEG-TS PCR like this:
+
+    r := iobit.NewReader(buffer)
+    base := r.Uint64Be(33)     // PCR base is 33-bits
+    r.Skip(6)                  // 6-bits are reserved
+    extension := r.Uint64Be(9) // PCR extension is 9-bits
+
+instead of:
+
+    base = uint64(buffer[0]) << 25
+    base |= uint64(buffer[1]) << 17
+    base |= uint64(buffer[2]) << 9
+    base |= uint64(buffer[3]) << 1
+    base |= buffer[4] >> 7
+    extension := uint16(buffer[4] & 0x1) << 8
+    extension |= buffer[5]
+
+and write it like this:
+
+    w := iobit.NewWriter(buffer)
+    w.PutUint64Be(33, base)
+    w.PutUint32Be(6, 0)
+    w.PutUint32Be(9, extension)
+*/
 package iobit
 
 import (
