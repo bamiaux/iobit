@@ -8,6 +8,9 @@ import (
 	"errors"
 )
 
+// A writer wraps a raw byte array and provides multiple methoods to write data bit-by-bit
+// Its methods don't return the usual error as it is too expensive.
+// Instead, write errors can be checked with the Flush() method.
 type Writer struct {
 	dst   []byte
 	cache uint64
@@ -15,21 +18,18 @@ type Writer struct {
 	idx   int
 }
 
-type bigEndian struct{}
-type littleEndian struct{}
-
 var (
 	ErrOverflow  = errors.New("bit overflow")
 	ErrUnderflow = errors.New("bit underflow")
-	BigEndian    bigEndian
-	LittleEndian littleEndian
 )
 
+// NewWriter returns a new writer writing to <dst> byte array.
 func NewWriter(dst []byte) *Writer {
 	return &Writer{dst: dst}
 }
 
-func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
+// PutUint32Be writes up to 32 <bits> from <val> in big-endian mode.
+func (w *Writer) PutUint32Be(bits uint, val uint32) {
 	u := uint64(val)
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
@@ -49,7 +49,8 @@ func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
 	w.cache |= u
 }
 
-func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
+// PutUint32Le writes up to 32 <bits> from <val> in little-endian mode.
+func (w *Writer) PutUint32Le(bits uint, val uint32) {
 	val = bswap32(val)
 	left, right := bits&7, bits&0xF8
 	sub := val >> (24 - right)
@@ -75,24 +76,29 @@ func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
 	w.cache |= u
 }
 
-func (bigEndian) PutUint64(w *Writer, bits uint, val uint64) {
+// PutUint64Be writes up to 64 <bits> from <val> in big-endian mode.
+func (w *Writer) PutUint64Be(bits uint, val uint64) {
 	if bits > 32 {
-		BigEndian.PutUint32(w, bits-32, uint32(val>>32))
+		w.PutUint32Be(bits-32, uint32(val>>32))
 		bits = 32
 		val &= 0xFFFFFFFF
 	}
-	BigEndian.PutUint32(w, bits, uint32(val))
+	w.PutUint32Be(bits, uint32(val))
 }
 
-func (littleEndian) PutUint64(w *Writer, bits uint, val uint64) {
+// PutUint64Le writes up to 64 <bits> from <val> in little-endian mode.
+func (w *Writer) PutUint64Le(bits uint, val uint64) {
 	if bits > 32 {
-		LittleEndian.PutUint32(w, 32, uint32(val&0xFFFFFFFF))
+		w.PutUint32Le(32, uint32(val&0xFFFFFFFF))
 		bits -= 32
 		val >>= 32
 	}
-	LittleEndian.PutUint32(w, bits, uint32(val))
+	w.PutUint32Le(bits, uint32(val))
 }
 
+// Flush flushes the writer to its array backend.
+// Returns ErrUnderflow if the output is not byte-aligned.
+// Returns ErrOverflow if the output array is too small.
 func (w *Writer) Flush() error {
 	for w.fill >= 8 && w.idx < len(w.dst) {
 		w.dst[w.idx] = byte(w.cache >> 56)
@@ -109,6 +115,8 @@ func (w *Writer) Flush() error {
 	return nil
 }
 
+// Write writes a whole byte slice at once from <p>.
+// Returns an error if the writer is not byte-aligned.
 func (w *Writer) Write(p []byte) (int, error) {
 	err := w.Flush()
 	if err != nil {
@@ -125,6 +133,7 @@ func (w *Writer) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+// Index returns the current writer position in bits.
 func (w *Writer) Index() int {
 	return w.idx<<3 + int(w.fill)
 }
@@ -136,11 +145,14 @@ func imin(a, b int) int {
 	return a
 }
 
+// Bits returns the number of bits available to write.
 func (w *Writer) Bits() int {
 	size := len(w.dst)
 	return size<<3 - imin(w.idx<<3+int(w.fill), size<<3)
 }
 
+// Bytes returns a byte array of what's left to write.
+// Note that this array is 8-bit aligned even if the writer is not.
 func (w *Writer) Bytes() []byte {
 	skip := w.idx + int(w.fill>>3)
 	if skip >= len(w.dst) {
@@ -149,6 +161,7 @@ func (w *Writer) Bytes() []byte {
 	return w.dst[skip:len(w.dst)]
 }
 
+// Reset resets the writer to its initial position.
 func (w *Writer) Reset() {
 	w.fill = 0
 	w.idx = 0

@@ -2,12 +2,17 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// Package iobit provides primitives for reading & writing bits
 package iobit
 
 import (
 	"encoding/binary"
 )
 
+// A reader wraps a raw byte array and provides multiple methods to read and
+// skip data bit-by-bit.
+// Its methods don't return the usual error as it is too expensive.
+// Instead, read errors can be checked with the Check() method
 type Reader struct {
 	src   []byte
 	cache uint64
@@ -16,6 +21,7 @@ type Reader struct {
 	size  uint
 }
 
+// NewReader returns a new reader reading from <src> byte array.
 func NewReader(src []byte) *Reader {
 	if len(src) >= 8 {
 		return &Reader{
@@ -39,6 +45,7 @@ func min(a, b uint) uint {
 	return a
 }
 
+// IsBit reads the next bit and returns whether it is set.
 func (r *Reader) IsBit() bool {
 	skip := min(r.idx>>3, r.max+7)
 	val := r.src[skip]
@@ -48,7 +55,9 @@ func (r *Reader) IsBit() bool {
 	return val != 0
 }
 
-func (bigEndian) Uint32(r *Reader, bits uint) uint32 {
+// Uint32Be reads up to 32 <bits> from <r> in big-endian mode.
+// It returns a 32-bit unsigned integer.
+func (r *Reader) Uint32Be(bits uint) uint32 {
 	skip := min(r.idx>>5<<2, r.max)
 	val := binary.BigEndian.Uint64(r.src[skip:])
 	val <<= r.idx - skip<<3
@@ -57,7 +66,9 @@ func (bigEndian) Uint32(r *Reader, bits uint) uint32 {
 	return uint32(val)
 }
 
-func (bigEndian) Int32(r *Reader, bits uint) int32 {
+// Int32Be reads up to 32 <bits> from <r> in big-endian mode.
+// It returns a 32-bit signed integer.
+func (r *Reader) Int32Be(bits uint) int32 {
 	skip := min(r.idx>>5<<2, r.max)
 	val := int64(binary.BigEndian.Uint64(r.src[skip:]))
 	val <<= r.idx - skip<<3
@@ -66,14 +77,16 @@ func (bigEndian) Int32(r *Reader, bits uint) int32 {
 	return int32(val)
 }
 
-func (bigEndian) Uint64(r *Reader, bits uint) uint64 {
+// Uint64Be reads up to 64 <bits> from <r> in big-endian mode.
+// It returns a 64-bit unsigned integer.
+func (r *Reader) Uint64Be(bits uint) uint64 {
 	var val uint64
 	if bits > 32 {
-		val = uint64(BigEndian.Uint32(r, 32))
+		val = uint64(r.Uint32Be(32))
 		bits -= 32
 		val <<= bits
 	}
-	return val + uint64(BigEndian.Uint32(r, bits))
+	return val + uint64(r.Uint32Be(bits))
 }
 
 func extend(v uint64, bits uint) int64 {
@@ -81,15 +94,19 @@ func extend(v uint64, bits uint) int64 {
 	return int64((v ^ m) - m)
 }
 
-func (bigEndian) Int64(r *Reader, bits uint) int64 {
-	return extend(BigEndian.Uint64(r, bits), bits)
+// Int64Be reads up to 64 <bits> from <r> in big-endian mode.
+// It returns a 64-bit signed integer.
+func (r *Reader) Int64Be(bits uint) int64 {
+	return extend(r.Uint64Be(bits), bits)
 }
 
 func bswap32(val uint32) uint32 {
 	return val>>24 | val>>8&0xFF00 | val<<8&0xFF0000 | val<<24
 }
 
-func (littleEndian) Uint32(r *Reader, bits uint) uint32 {
+// Uint32Le reads up to 32 <bits> from <r> in little-endian mode.
+// It returns a 32-bit unsigned integer.
+func (r *Reader) Uint32Le(bits uint) uint32 {
 	skip := min(r.idx>>5<<2, r.max)
 	offset := r.idx - skip<<3
 	r.idx += bits
@@ -102,44 +119,55 @@ func (littleEndian) Uint32(r *Reader, bits uint) uint32 {
 	return sub + val
 }
 
-func (littleEndian) Int32(r *Reader, bits uint) int32 {
-	v := LittleEndian.Uint32(r, bits)
-	return int32(extend(uint64(v), bits))
+// Int32Le reads up to 32 <bits> from <r> in little-endian mode.
+// It returns a 32-bit signed integer.
+func (r *Reader) Int32Le(bits uint) int32 {
+	return int32(extend(uint64(r.Uint32Le(bits)), bits))
 }
 
-func (littleEndian) Uint64(r *Reader, bits uint) uint64 {
+// Uint64Le reads up to 64 <bits> from <r> in little-endian mode.
+// It returns a 64-bit unsigned integer.
+func (r *Reader) Uint64Le(bits uint) uint64 {
 	var val uint64
 	var shift uint
 	if bits > 32 {
-		val = uint64(LittleEndian.Uint32(r, 32))
+		val = uint64(r.Uint32Le(32))
 		bits -= 32
 		shift = 32
 	}
-	return val + uint64(LittleEndian.Uint32(r, bits))<<shift
+	return val + uint64(r.Uint32Le(bits))<<shift
 }
 
-func (littleEndian) Int64(r *Reader, bits uint) int64 {
-	v := LittleEndian.Uint64(r, bits)
-	return extend(v, bits)
+// Int64Le reads up to 64 <bits> from <r> in little-endian mode.
+// It returns a 64-bit signed integer.
+func (r *Reader) Int64Le(bits uint) int64 {
+	return extend(r.Uint64Le(bits), bits)
 }
 
+// Peek returns a new reader at the same position as the original reader.
+// Any read done on this read will not move the original reader.
 func (r *Reader) Peek() *Reader {
 	p := *r
 	return &p
 }
 
+// Skip skips n <bits> from the reader.
 func (r *Reader) Skip(bits uint) {
 	r.idx += bits
 }
 
+// Index returns the current reader position in bits.
 func (r *Reader) Index() uint {
 	return r.idx
 }
 
+// Bits returns the number of bits left to read.
 func (r *Reader) Bits() uint {
 	return r.size<<3 - min(r.idx, r.size<<3)
 }
 
+// Bytes returns a byte array of what's left to read.
+// Note that this array is 8-bit aligned even if the reader is not.
 func (r *Reader) Bytes() []byte {
 	skip := r.idx >> 3
 	if skip >= r.size {
@@ -148,6 +176,7 @@ func (r *Reader) Bytes() []byte {
 	return r.src[skip:r.size]
 }
 
+// Check returns whether the reader encountered an error on previous methods.
 func (r *Reader) Check() error {
 	if r.idx > r.size<<3 {
 		return ErrOverflow
@@ -155,6 +184,7 @@ func (r *Reader) Check() error {
 	return nil
 }
 
+// Reset resets the reader to its initial position.
 func (r *Reader) Reset() {
 	r.idx = 0
 }

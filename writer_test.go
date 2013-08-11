@@ -67,7 +67,7 @@ func testWrites(w *Writer, t *testing.T, align int, src []byte) {
 		block := binary.BigEndian.Uint64(src[idx:])
 		block >>= uint(64 - bits - fill)
 		value := uint32(block & 0xFFFFFFFF)
-		BigEndian.PutUint32(w, uint(bits), value)
+		w.PutUint32Be(uint(bits), value)
 		read += bits
 	}
 	flushCheck(t, w)
@@ -86,8 +86,8 @@ func TestWrites(t *testing.T) {
 func TestSmall64BigEndianWrite(t *testing.T) {
 	buf := make([]byte, 5)
 	w := NewWriter(buf)
-	BigEndian.PutUint64(w, 33, 0xFFFFFFFE00000001)
-	BigEndian.PutUint32(w, 7, 0)
+	w.PutUint64Be(33, 0xFFFFFFFE00000001)
+	w.PutUint32Be(7, 0)
 	w.Flush()
 	compare(t, buf, []byte{0x00, 0x00, 0x00, 0x00, 0x80})
 }
@@ -95,8 +95,8 @@ func TestSmall64BigEndianWrite(t *testing.T) {
 func TestSmall64LittleEndianWrite(t *testing.T) {
 	buf := make([]byte, 5)
 	w := NewWriter(buf)
-	LittleEndian.PutUint64(w, 33, 0xFFFFFFFE00000001)
-	LittleEndian.PutUint32(w, 7, 0)
+	w.PutUint64Le(33, 0xFFFFFFFE00000001)
+	w.PutUint32Le(7, 0)
 	w.Flush()
 	compare(t, buf, []byte{0x01, 0x00, 0x00, 0x00, 0x00})
 }
@@ -104,7 +104,7 @@ func TestSmall64LittleEndianWrite(t *testing.T) {
 func TestBigEndianWrite(t *testing.T) {
 	buf := make([]byte, 8)
 	w := NewWriter(buf)
-	BigEndian.PutUint64(w, 64, 0x0123456789ABCDEF)
+	w.PutUint64Be(64, 0x0123456789ABCDEF)
 	w.Flush()
 	compare(t, buf, []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF})
 }
@@ -112,7 +112,7 @@ func TestBigEndianWrite(t *testing.T) {
 func TestLittleEndianWrite(t *testing.T) {
 	buf := make([]byte, 8)
 	w := NewWriter(buf)
-	LittleEndian.PutUint64(w, 64, 0x0123456789ABCDEF)
+	w.PutUint64Le(64, 0x0123456789ABCDEF)
 	w.Flush()
 	compare(t, buf, []byte{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
 }
@@ -127,15 +127,15 @@ func TestFlushErrors(t *testing.T) {
 	buf := make([]byte, 2)
 
 	w := NewWriter(buf)
-	BigEndian.PutUint32(w, 9, 0)
+	w.PutUint32Be(9, 0)
 	checkError(t, ErrUnderflow, w.Flush())
 
 	w = NewWriter(buf)
-	BigEndian.PutUint32(w, 16, 0)
+	w.PutUint32Be(16, 0)
 	checkError(t, nil, w.Flush())
 
 	w = NewWriter(buf)
-	BigEndian.PutUint32(w, 17, 0)
+	w.PutUint32Be(17, 0)
 	checkError(t, ErrOverflow, w.Flush())
 }
 
@@ -154,19 +154,19 @@ func TestWriteHelpers(t *testing.T) {
 	buf := []byte{0x00}
 	w := NewWriter(buf[:])
 	expect(t, int(8), w.Bits())
-	BigEndian.PutUint32(w, 1, 0)
+	w.PutUint32Be(1, 0)
 	expect(t, int(1), w.Index())
 	expect(t, int(7), w.Bits())
-	BigEndian.PutUint32(w, 1, 1)
-	BigEndian.PutUint32(w, 5, 0)
-	BigEndian.PutUint32(w, 1, 1)
+	w.PutUint32Be(1, 1)
+	w.PutUint32Be(5, 0)
+	w.PutUint32Be(1, 1)
 	err := w.Flush()
 	expect(t, buf, []byte{0x41})
 	expect(t, int(8), w.Index())
 	expect(t, int(0), w.Bits())
 	expect(t, 0, len(w.Bytes()))
 	expect(t, nil, err)
-	BigEndian.PutUint32(w, 1, 0)
+	w.PutUint32Be(1, 0)
 	expect(t, int(9), w.Index())
 	expect(t, int(0), w.Bits())
 	expect(t, 0, len(w.Bytes()))
@@ -203,25 +203,25 @@ func prepareBenchmark(size, chunk, align int) ([]byte, []uint, []uint64, int) {
 
 func bigWrite32(w *Writer, bits []uint, values []uint64, last int) {
 	for j := 0; j < last; j++ {
-		BigEndian.PutUint32(w, bits[j], uint32(values[j]))
+		w.PutUint32Be(bits[j], uint32(values[j]))
 	}
 }
 
 func bigWrite64(w *Writer, bits []uint, values []uint64, last int) {
 	for j := 0; j < last; j++ {
-		BigEndian.PutUint64(w, bits[j], values[j])
+		w.PutUint64Be(bits[j], values[j])
 	}
 }
 
 func littleWrite32(w *Writer, bits []uint, values []uint64, last int) {
 	for j := 0; j < last; j++ {
-		LittleEndian.PutUint32(w, bits[j], uint32(values[j]))
+		w.PutUint32Le(bits[j], uint32(values[j]))
 	}
 }
 
 func littleWrite64(w *Writer, bits []uint, values []uint64, last int) {
 	for j := 0; j < last; j++ {
-		LittleEndian.PutUint64(w, bits[j], values[j])
+		w.PutUint64Le(bits[j], values[j])
 	}
 }
 
