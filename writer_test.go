@@ -29,10 +29,10 @@ func getNumBits(read, max, chunk, align int) int {
 	return bits
 }
 
-func makeSource(size int) []uint8 {
-	src := make([]uint8, size)
+func makeSource(size int) []byte {
+	src := make([]byte, size)
 	for i := range src {
-		src[i] = uint8(rand.Intn(0xFF))
+		src[i] = byte(rand.Intn(0xFF))
 	}
 	return src[:]
 }
@@ -44,7 +44,7 @@ func flushCheck(t *testing.T, w *Writer) {
 	}
 }
 
-func compare(t *testing.T, src, dst []uint8) {
+func compare(t *testing.T, src, dst []byte) {
 	if bytes.Equal(src, dst) {
 		return
 	}
@@ -53,7 +53,7 @@ func compare(t *testing.T, src, dst []uint8) {
 	t.Fatal("invalid output")
 }
 
-func testWrites(w *Writer, t *testing.T, align int, src []uint8) {
+func testWrites(w *Writer, t *testing.T, align int, src []byte) {
 	max := len(src) * 8
 	for read := 0; read < max; {
 		bits := getNumBits(read, max, 32, align)
@@ -75,7 +75,7 @@ func testWrites(w *Writer, t *testing.T, align int, src []uint8) {
 
 func TestWrites(t *testing.T) {
 	src := makeSource(512)
-	dst := make([]uint8, len(src))
+	dst := make([]byte, len(src))
 	for i := 32; i > 0; i >>= 1 {
 		w := NewWriter(dst)
 		testWrites(w, t, i, src)
@@ -84,37 +84,37 @@ func TestWrites(t *testing.T) {
 }
 
 func TestSmall64BigEndianWrite(t *testing.T) {
-	buf := make([]uint8, 5)
+	buf := make([]byte, 5)
 	w := NewWriter(buf)
 	BigEndian.PutUint64(w, 33, 0xFFFFFFFE00000001)
 	BigEndian.PutUint32(w, 7, 0)
 	w.Flush()
-	compare(t, buf, []uint8{0x00, 0x00, 0x00, 0x00, 0x80})
+	compare(t, buf, []byte{0x00, 0x00, 0x00, 0x00, 0x80})
 }
 
 func TestSmall64LittleEndianWrite(t *testing.T) {
-	buf := make([]uint8, 5)
+	buf := make([]byte, 5)
 	w := NewWriter(buf)
 	LittleEndian.PutUint64(w, 33, 0xFFFFFFFE00000001)
 	LittleEndian.PutUint32(w, 7, 0)
 	w.Flush()
-	compare(t, buf, []uint8{0x01, 0x00, 0x00, 0x00, 0x00})
+	compare(t, buf, []byte{0x01, 0x00, 0x00, 0x00, 0x00})
 }
 
 func TestBigEndianWrite(t *testing.T) {
-	buf := make([]uint8, 8)
+	buf := make([]byte, 8)
 	w := NewWriter(buf)
 	BigEndian.PutUint64(w, 64, 0x0123456789ABCDEF)
 	w.Flush()
-	compare(t, buf, []uint8{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF})
+	compare(t, buf, []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF})
 }
 
 func TestLittleEndianWrite(t *testing.T) {
-	buf := make([]uint8, 8)
+	buf := make([]byte, 8)
 	w := NewWriter(buf)
 	LittleEndian.PutUint64(w, 64, 0x0123456789ABCDEF)
 	w.Flush()
-	compare(t, buf, []uint8{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
+	compare(t, buf, []byte{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
 }
 
 func checkError(t *testing.T, expected, actual error) {
@@ -124,7 +124,7 @@ func checkError(t *testing.T, expected, actual error) {
 }
 
 func TestFlushErrors(t *testing.T) {
-	buf := make([]uint8, 2)
+	buf := make([]byte, 2)
 
 	w := NewWriter(buf)
 	BigEndian.PutUint32(w, 9, 0)
@@ -151,7 +151,7 @@ func expect(t *testing.T, a, b interface{}) {
 }
 
 func TestWriteHelpers(t *testing.T) {
-	buf := []uint8{0x00}
+	buf := []byte{0x00}
 	w := NewWriter(buf[:])
 	expect(t, int(8), w.Bits())
 	BigEndian.PutUint32(w, 1, 0)
@@ -161,7 +161,7 @@ func TestWriteHelpers(t *testing.T) {
 	BigEndian.PutUint32(w, 5, 0)
 	BigEndian.PutUint32(w, 1, 1)
 	err := w.Flush()
-	expect(t, buf, []uint8{0x41})
+	expect(t, buf, []byte{0x41})
 	expect(t, int(8), w.Index())
 	expect(t, int(0), w.Bits())
 	expect(t, 0, len(w.Bytes()))
@@ -173,8 +173,8 @@ func TestWriteHelpers(t *testing.T) {
 	expect(t, ErrOverflow, w.Flush())
 }
 
-func prepareBenchmark(size, chunk, align int) ([]uint8, []uint, []uint64, int) {
-	buf := make([]uint8, size)
+func prepareBenchmark(size, chunk, align int) ([]byte, []uint, []uint64, int) {
+	buf := make([]byte, size)
 	bits := make([]uint, size)
 	values := make([]uint64, size)
 	idx := 0

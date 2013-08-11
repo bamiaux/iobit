@@ -9,14 +9,14 @@ import (
 )
 
 type Reader struct {
-	src   []uint8
+	src   []byte
 	cache uint64
 	idx   uint
 	max   uint
 	size  uint
 }
 
-func NewReader(src []uint8) *Reader {
+func NewReader(src []byte) *Reader {
 	if len(src) >= 8 {
 		return &Reader{
 			src:  src,
@@ -24,7 +24,7 @@ func NewReader(src []uint8) *Reader {
 			size: uint(len(src)),
 		}
 	}
-	clone := make([]uint8, 8)
+	clone := make([]byte, 8)
 	copy(clone, src)
 	return &Reader{
 		src:  clone,
@@ -140,7 +140,7 @@ func (r *Reader) Bits() uint {
 	return r.size<<3 - min(r.idx, r.size<<3)
 }
 
-func (r *Reader) Bytes() []uint8 {
+func (r *Reader) Bytes() []byte {
 	skip := min(r.idx>>3, r.size)
 	last := r.size - skip
 	if last == 0 {

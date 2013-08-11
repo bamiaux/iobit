@@ -9,7 +9,7 @@ import (
 )
 
 type Writer struct {
-	dst   []uint8
+	dst   []byte
 	cache uint64
 	fill  uint
 	idx   int
@@ -25,7 +25,7 @@ var (
 	LittleEndian littleEndian
 )
 
-func NewWriter(dst []uint8) *Writer {
+func NewWriter(dst []byte) *Writer {
 	return &Writer{dst: dst}
 }
 
@@ -34,10 +34,10 @@ func (bigEndian) PutUint32(w *Writer, bits uint, val uint32) {
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
 		if w.idx+4 <= len(w.dst) {
-			w.dst[w.idx+0] = uint8(w.cache >> 56)
-			w.dst[w.idx+1] = uint8(w.cache >> 48)
-			w.dst[w.idx+2] = uint8(w.cache >> 40)
-			w.dst[w.idx+3] = uint8(w.cache >> 32)
+			w.dst[w.idx+0] = byte(w.cache >> 56)
+			w.dst[w.idx+1] = byte(w.cache >> 48)
+			w.dst[w.idx+2] = byte(w.cache >> 40)
+			w.dst[w.idx+3] = byte(w.cache >> 32)
 		}
 		w.idx += 4
 		w.cache <<= 32
@@ -56,10 +56,10 @@ func (littleEndian) PutUint32(w *Writer, bits uint, val uint32) {
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
 		if w.idx+4 <= len(w.dst) {
-			w.dst[w.idx+0] = uint8(w.cache >> 56)
-			w.dst[w.idx+1] = uint8(w.cache >> 48)
-			w.dst[w.idx+2] = uint8(w.cache >> 40)
-			w.dst[w.idx+3] = uint8(w.cache >> 32)
+			w.dst[w.idx+0] = byte(w.cache >> 56)
+			w.dst[w.idx+1] = byte(w.cache >> 48)
+			w.dst[w.idx+2] = byte(w.cache >> 40)
+			w.dst[w.idx+3] = byte(w.cache >> 32)
 		}
 		w.idx += 4
 		w.cache <<= 32
@@ -95,7 +95,7 @@ func (littleEndian) PutUint64(w *Writer, bits uint, val uint64) {
 
 func (w *Writer) Flush() error {
 	for w.fill >= 8 && w.idx < len(w.dst) {
-		w.dst[w.idx] = uint8(w.cache >> 56)
+		w.dst[w.idx] = byte(w.cache >> 56)
 		w.idx += 1
 		w.cache <<= 8
 		w.fill -= 8
@@ -109,7 +109,7 @@ func (w *Writer) Flush() error {
 	return nil
 }
 
-func (w *Writer) Write(p []uint8) (int, error) {
+func (w *Writer) Write(p []byte) (int, error) {
 	err := w.Flush()
 	if err != nil {
 		return 0, err
@@ -141,7 +141,7 @@ func (w *Writer) Bits() int {
 	return size<<3 - imin(w.idx<<3+int(w.fill), size<<3)
 }
 
-func (w *Writer) Bytes() []uint8 {
+func (w *Writer) Bytes() []byte {
 	skip := imin(w.idx+int(w.fill>>3), len(w.dst))
 	last := len(w.dst) - skip
 	if last == 0 {

@@ -12,7 +12,7 @@ func testReads(t *testing.T, op ReadTestOp) {
 	src := makeSource(1 << 16)
 	max := len(src) * 8
 	for i := 32; i > 0; i >>= 1 {
-		dst := make([]uint8, len(src))
+		dst := make([]byte, len(src))
 		r := NewReader(src)
 		w := NewWriter(dst)
 		for read := 0; read < max; {
@@ -49,25 +49,25 @@ func TestLittleUint64Reads(t *testing.T) { testReads(t, littleUint64Loop) }
 func TestLittleInt64Reads(t *testing.T)  { testReads(t, littleInt64Loop) }
 
 func TestSigned(t *testing.T) {
-	big := []uint8{0x7E}
+	big := []byte{0x7E}
 	r := NewReader(big)
 	expect(t, int32(0), BigEndian.Int32(r, 1))
 	expect(t, int32(-1), BigEndian.Int32(r, 1))
 	expect(t, int32(-1), BigEndian.Int32(r, 5))
 	expect(t, int32(0), BigEndian.Int32(r, 1))
-	big = []uint8{0x7F, 0xFF, 0xFF, 0xFF, 0xE0}
+	big = []byte{0x7F, 0xFF, 0xFF, 0xFF, 0xE0}
 	r = NewReader(big)
 	expect(t, int64(0), BigEndian.Int64(r, 1))
 	expect(t, int64(-1), BigEndian.Int64(r, 1))
 	expect(t, int64(-1), BigEndian.Int64(r, 33))
 	expect(t, int64(0), BigEndian.Int64(r, 5))
-	lil := []uint8{0x7F, 0xFE}
+	lil := []byte{0x7F, 0xFE}
 	r = NewReader(lil)
 	expect(t, int32(0), LittleEndian.Int32(r, 1))
 	expect(t, int32(-1), LittleEndian.Int32(r, 1))
 	expect(t, int32(-1), LittleEndian.Int32(r, 13))
 	expect(t, int32(0), LittleEndian.Int32(r, 1))
-	lil = []uint8{0x7F, 0x7F, 0xFF, 0xFF, 0xE0}
+	lil = []byte{0x7F, 0x7F, 0xFF, 0xFF, 0xE0}
 	r = NewReader(lil)
 	expect(t, int64(0), LittleEndian.Int64(r, 1))
 	expect(t, int64(-1), LittleEndian.Int64(r, 1))
@@ -76,7 +76,7 @@ func TestSigned(t *testing.T) {
 }
 
 func TestReadHelpers(t *testing.T) {
-	buf := []uint8{0x41}
+	buf := []byte{0x41}
 	r := NewReader(buf[:])
 	expect(t, uint(8), r.Bits())
 	r.Skip(1)
