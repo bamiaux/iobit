@@ -103,6 +103,17 @@ func TestReadHelpers(t *testing.T) {
 	expect(t, ErrOverflow, r.Check())
 }
 
+func TestBadSliceRead(t *testing.T) {
+	buf := []byte{0x01, 0x02, 0x03}
+	r := NewReader(buf[:])
+	r.Skip(8)
+	compare(t, r.Bytes(), buf[1:])
+	r.Skip(16)
+	expect(t, 0, len(r.Bytes()))
+	r.Skip(1)
+	expect(t, 0, len(r.Bytes()))
+}
+
 func bigReadUint32(r *Reader, bits []uint, last int) {
 	for j := 0; j < last; j++ {
 		BigEndian.Uint32(r, bits[j])

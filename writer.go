@@ -142,12 +142,11 @@ func (w *Writer) Bits() int {
 }
 
 func (w *Writer) Bytes() []byte {
-	skip := imin(w.idx+int(w.fill>>3), len(w.dst))
-	last := len(w.dst) - skip
-	if last == 0 {
-		return w.dst[0:0]
+	skip := w.idx + int(w.fill>>3)
+	if skip >= len(w.dst) {
+		return w.dst[:0]
 	}
-	return w.dst[skip:last]
+	return w.dst[skip:len(w.dst)]
 }
 
 func (w *Writer) Reset() {

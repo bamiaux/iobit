@@ -173,6 +173,16 @@ func TestWriteHelpers(t *testing.T) {
 	expect(t, ErrOverflow, w.Flush())
 }
 
+func TestBadSlices(t *testing.T) {
+	dst := []byte{0x00, 0x01, 0x02}
+	w := NewWriter(dst[:])
+	compare(t, w.Bytes(), dst[:])
+	w.PutUint32Be(8, 0)
+	compare(t, w.Bytes(), dst[1:])
+	w.PutUint32Be(16, 0)
+	expect(t, 0, len(w.Bytes()))
+}
+
 func prepareBenchmark(size, chunk, align int) ([]byte, []uint, []uint64, int) {
 	buf := make([]byte, size)
 	bits := make([]uint, size)

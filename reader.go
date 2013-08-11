@@ -141,12 +141,11 @@ func (r *Reader) Bits() uint {
 }
 
 func (r *Reader) Bytes() []byte {
-	skip := min(r.idx>>3, r.size)
-	last := r.size - skip
-	if last == 0 {
-		return r.src[0:0]
+	skip := r.idx >> 3
+	if skip >= r.size {
+		return r.src[:0]
 	}
-	return r.src[skip:last]
+	return r.src[skip:r.size]
 }
 
 func (r *Reader) Check() error {
