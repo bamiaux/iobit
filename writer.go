@@ -28,8 +28,8 @@ func NewWriter(dst []byte) *Writer {
 	return &Writer{dst: dst}
 }
 
-// PutUint32Be writes up to 32 <bits> from <val> in big-endian mode.
-func (w *Writer) PutUint32Be(bits uint, val uint32) {
+// PutUint32 writes up to 32 <bits> from <val> in big-endian order.
+func (w *Writer) PutUint32(bits uint, val uint32) {
 	u := uint64(val)
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
@@ -49,7 +49,7 @@ func (w *Writer) PutUint32Be(bits uint, val uint32) {
 	w.cache |= u
 }
 
-// PutUint32Le writes up to 32 <bits> from <val> in little-endian mode.
+// PutUint32Le writes up to 32 <bits> from <val> in little-endian order.
 func (w *Writer) PutUint32Le(bits uint, val uint32) {
 	val = bswap32(val)
 	left, right := bits&7, bits&0xF8
@@ -76,17 +76,17 @@ func (w *Writer) PutUint32Le(bits uint, val uint32) {
 	w.cache |= u
 }
 
-// PutUint64Be writes up to 64 <bits> from <val> in big-endian mode.
-func (w *Writer) PutUint64Be(bits uint, val uint64) {
+// PutUint64 writes up to 64 <bits> from <val> in big-endian order.
+func (w *Writer) PutUint64(bits uint, val uint64) {
 	if bits > 32 {
-		w.PutUint32Be(bits-32, uint32(val>>32))
+		w.PutUint32(bits-32, uint32(val>>32))
 		bits = 32
 		val &= 0xFFFFFFFF
 	}
-	w.PutUint32Be(bits, uint32(val))
+	w.PutUint32(bits, uint32(val))
 }
 
-// PutUint64Le writes up to 64 <bits> from <val> in little-endian mode.
+// PutUint64Le writes up to 64 <bits> from <val> in little-endian order.
 func (w *Writer) PutUint64Le(bits uint, val uint64) {
 	if bits > 32 {
 		w.PutUint32Le(32, uint32(val&0xFFFFFFFF))
@@ -96,7 +96,7 @@ func (w *Writer) PutUint64Le(bits uint, val uint64) {
 	w.PutUint32Le(bits, uint32(val))
 }
 
-// Flush flushes the writer to its array backend.
+// Flush flushes the writer to its underlying buffer.
 // Returns ErrUnderflow if the output is not byte-aligned.
 // Returns ErrOverflow if the output array is too small.
 func (w *Writer) Flush() error {
@@ -115,7 +115,7 @@ func (w *Writer) Flush() error {
 	return nil
 }
 
-// Write writes a whole byte slice at once from <p>.
+// Write writes a whole slice <p> at once.
 // Returns an error if the writer is not byte-aligned.
 func (w *Writer) Write(p []byte) (int, error) {
 	err := w.Flush()

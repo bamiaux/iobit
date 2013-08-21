@@ -26,11 +26,11 @@ func testReads(t *testing.T, op ReadTestOp) {
 }
 
 func bigUint64Loop(w *Writer, r *Reader, bits uint) {
-	w.PutUint64Be(bits, r.Uint64Be(bits))
+	w.PutUint64(bits, r.Uint64(bits))
 }
 
 func bigInt64Loop(w *Writer, r *Reader, bits uint) {
-	w.PutUint64Be(bits, uint64(r.Int64Be(bits)))
+	w.PutUint64(bits, uint64(r.Int64(bits)))
 }
 
 func littleUint64Loop(w *Writer, r *Reader, bits uint) {
@@ -51,16 +51,16 @@ func TestLittleInt64Reads(t *testing.T)  { testReads(t, littleInt64Loop) }
 func TestSigned(t *testing.T) {
 	big := []byte{0x7E}
 	r := NewReader(big)
-	expect(t, int32(0), r.Int32Be(1))
-	expect(t, int32(-1), r.Int32Be(1))
-	expect(t, int32(-1), r.Int32Be(5))
-	expect(t, int32(0), r.Int32Be(1))
+	expect(t, int32(0), r.Int32(1))
+	expect(t, int32(-1), r.Int32(1))
+	expect(t, int32(-1), r.Int32(5))
+	expect(t, int32(0), r.Int32(1))
 	big = []byte{0x7F, 0xFF, 0xFF, 0xFF, 0xE0}
 	r = NewReader(big)
-	expect(t, int64(0), r.Int64Be(1))
-	expect(t, int64(-1), r.Int64Be(1))
-	expect(t, int64(-1), r.Int64Be(33))
-	expect(t, int64(0), r.Int64Be(5))
+	expect(t, int64(0), r.Int64(1))
+	expect(t, int64(-1), r.Int64(1))
+	expect(t, int64(-1), r.Int64(33))
+	expect(t, int64(0), r.Int64(5))
 	lil := []byte{0x7F, 0xFE}
 	r = NewReader(lil)
 	expect(t, int32(0), r.Int32Le(1))
@@ -116,25 +116,25 @@ func TestBadSliceRead(t *testing.T) {
 
 func bigReadUint32(r *Reader, bits []uint, last int) {
 	for j := 0; j < last; j++ {
-		r.Uint32Be(bits[j])
+		r.Uint32(bits[j])
 	}
 }
 
 func bigReadUint64(r *Reader, bits []uint, last int) {
 	for j := 0; j < last; j++ {
-		r.Uint64Be(bits[j])
+		r.Uint64(bits[j])
 	}
 }
 
 func bigReadInt32(r *Reader, bits []uint, last int) {
 	for j := 0; j < last; j++ {
-		r.Int32Be(bits[j])
+		r.Int32(bits[j])
 	}
 }
 
 func bigReadInt64(r *Reader, bits []uint, last int) {
 	for j := 0; j < last; j++ {
-		r.Int64Be(bits[j])
+		r.Int64(bits[j])
 	}
 }
 

@@ -13,13 +13,13 @@ data which is not aligned on bytes.
 For example, with iobit you can read an MPEG-TS PCR like this:
 
     r := iobit.NewReader(buffer)
-    base := r.Uint64Be(33)     // PCR base is 33-bits
-    r.Skip(6)                  // 6-bits are reserved
-    extension := r.Uint64Be(9) // PCR extension is 9-bits
+    base := r.Uint64(33)     // PCR base is 33-bits
+    r.Skip(6)                // 6-bits are reserved
+    extension := r.Uint64(9) // PCR extension is 9-bits
 
 instead of:
 
-    base = uint64(buffer[0]) << 25
+    base  = uint64(buffer[0]) << 25
     base |= uint64(buffer[1]) << 17
     base |= uint64(buffer[2]) << 9
     base |= uint64(buffer[3]) << 1
@@ -30,9 +30,9 @@ instead of:
 and write it like this:
 
     w := iobit.NewWriter(buffer)
-    w.PutUint64Be(33, base)
-    w.PutUint32Be(6, 0)
-    w.PutUint32Be(9, extension)
+    w.PutUint64(33, base)
+    w.PutUint32(6, 0)
+    w.PutUint32(9, extension)
 */
 package iobit
 
@@ -76,7 +76,7 @@ func min(a, b uint) uint {
 	return a
 }
 
-// IsBit reads the next bit and returns whether it is set.
+// IsBit reads the next bit as a boolean.
 func (r *Reader) IsBit() bool {
 	skip := min(r.idx>>3, r.max+7)
 	val := r.src[skip]
@@ -86,9 +86,8 @@ func (r *Reader) IsBit() bool {
 	return val != 0
 }
 
-// Uint32Be reads up to 32 <bits> from <r> in big-endian mode.
-// It returns a 32-bit unsigned integer.
-func (r *Reader) Uint32Be(bits uint) uint32 {
+// Uint32 reads up to 32 unsigned <bits> in big-endian order.
+func (r *Reader) Uint32(bits uint) uint32 {
 	skip := min(r.idx>>5<<2, r.max)
 	val := binary.BigEndian.Uint64(r.src[skip:])
 	val <<= r.idx - skip<<3
@@ -97,9 +96,8 @@ func (r *Reader) Uint32Be(bits uint) uint32 {
 	return uint32(val)
 }
 
-// Int32Be reads up to 32 <bits> from <r> in big-endian mode.
-// It returns a 32-bit signed integer.
-func (r *Reader) Int32Be(bits uint) int32 {
+// Int32 reads up to 32 signed <bits> in big-endian order.
+func (r *Reader) Int32(bits uint) int32 {
 	skip := min(r.idx>>5<<2, r.max)
 	val := int64(binary.BigEndian.Uint64(r.src[skip:]))
 	val <<= r.idx - skip<<3
@@ -108,16 +106,15 @@ func (r *Reader) Int32Be(bits uint) int32 {
 	return int32(val)
 }
 
-// Uint64Be reads up to 64 <bits> from <r> in big-endian mode.
-// It returns a 64-bit unsigned integer.
-func (r *Reader) Uint64Be(bits uint) uint64 {
+// Uint64 reads up to 64 unsigned <bits> in big-endian order.
+func (r *Reader) Uint64(bits uint) uint64 {
 	var val uint64
 	if bits > 32 {
-		val = uint64(r.Uint32Be(32))
+		val = uint64(r.Uint32(32))
 		bits -= 32
 		val <<= bits
 	}
-	return val + uint64(r.Uint32Be(bits))
+	return val + uint64(r.Uint32(bits))
 }
 
 func extend(v uint64, bits uint) int64 {
@@ -125,18 +122,16 @@ func extend(v uint64, bits uint) int64 {
 	return int64((v ^ m) - m)
 }
 
-// Int64Be reads up to 64 <bits> from <r> in big-endian mode.
-// It returns a 64-bit signed integer.
-func (r *Reader) Int64Be(bits uint) int64 {
-	return extend(r.Uint64Be(bits), bits)
+// Int64 reads up to 64 signed <bits> in big-endian order.
+func (r *Reader) Int64(bits uint) int64 {
+	return extend(r.Uint64(bits), bits)
 }
 
 func bswap32(val uint32) uint32 {
 	return val>>24 | val>>8&0xFF00 | val<<8&0xFF0000 | val<<24
 }
 
-// Uint32Le reads up to 32 <bits> from <r> in little-endian mode.
-// It returns a 32-bit unsigned integer.
+// Uint32Le reads up to 32 unsigned <bits> in little-endian order.
 func (r *Reader) Uint32Le(bits uint) uint32 {
 	skip := min(r.idx>>5<<2, r.max)
 	offset := r.idx - skip<<3
@@ -150,14 +145,12 @@ func (r *Reader) Uint32Le(bits uint) uint32 {
 	return sub + val
 }
 
-// Int32Le reads up to 32 <bits> from <r> in little-endian mode.
-// It returns a 32-bit signed integer.
+// Int32Le reads up to 32 signed <bits> in little-endian order.
 func (r *Reader) Int32Le(bits uint) int32 {
 	return int32(extend(uint64(r.Uint32Le(bits)), bits))
 }
 
-// Uint64Le reads up to 64 <bits> from <r> in little-endian mode.
-// It returns a 64-bit unsigned integer.
+// Uint64Le reads up to 64 unsigned <bits> in little-endian order.
 func (r *Reader) Uint64Le(bits uint) uint64 {
 	var val uint64
 	var shift uint
@@ -169,20 +162,19 @@ func (r *Reader) Uint64Le(bits uint) uint64 {
 	return val + uint64(r.Uint32Le(bits))<<shift
 }
 
-// Int64Le reads up to 64 <bits> from <r> in little-endian mode.
-// It returns a 64-bit signed integer.
+// Int64Le reads up to 64 signed <bits> in little-endian order.
 func (r *Reader) Int64Le(bits uint) int64 {
 	return extend(r.Uint64Le(bits), bits)
 }
 
-// Peek returns a new reader at the same position as the original reader.
-// Any read done on this read will not move the original reader.
+// Peek returns a reader copy.
+// Useful to read data without advancing the original reader.
 func (r *Reader) Peek() *Reader {
 	p := *r
 	return &p
 }
 
-// Skip skips n <bits> from the reader.
+// Skip skips <bits> bits.
 func (r *Reader) Skip(bits uint) {
 	r.idx += bits
 }
@@ -197,8 +189,8 @@ func (r *Reader) Bits() uint {
 	return r.size<<3 - min(r.idx, r.size<<3)
 }
 
-// Bytes returns a byte array of what's left to read.
-// Note that this array is 8-bit aligned even if the reader is not.
+// Bytes returns a slice of the contents of the unread reader portion.
+// Note that this slice is byte aligned even if the reader is not.
 func (r *Reader) Bytes() []byte {
 	skip := r.idx >> 3
 	if skip >= r.size {
@@ -207,7 +199,7 @@ func (r *Reader) Bytes() []byte {
 	return r.src[skip:r.size]
 }
 
-// Check returns whether the reader encountered an error on previous methods.
+// Check returns whether the reader encountered an error.
 func (r *Reader) Check() error {
 	if r.idx > r.size<<3 {
 		return ErrOverflow

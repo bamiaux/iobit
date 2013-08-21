@@ -67,7 +67,7 @@ func testWrites(w *Writer, t *testing.T, align int, src []byte) {
 		block := binary.BigEndian.Uint64(src[idx:])
 		block >>= uint(64 - bits - fill)
 		value := uint32(block & 0xFFFFFFFF)
-		w.PutUint32Be(uint(bits), value)
+		w.PutUint32(uint(bits), value)
 		read += bits
 	}
 	flushCheck(t, w)
@@ -86,8 +86,8 @@ func TestWrites(t *testing.T) {
 func TestSmall64BigEndianWrite(t *testing.T) {
 	buf := make([]byte, 5)
 	w := NewWriter(buf)
-	w.PutUint64Be(33, 0xFFFFFFFE00000001)
-	w.PutUint32Be(7, 0)
+	w.PutUint64(33, 0xFFFFFFFE00000001)
+	w.PutUint32(7, 0)
 	w.Flush()
 	compare(t, buf, []byte{0x00, 0x00, 0x00, 0x00, 0x80})
 }
@@ -104,7 +104,7 @@ func TestSmall64LittleEndianWrite(t *testing.T) {
 func TestBigEndianWrite(t *testing.T) {
 	buf := make([]byte, 8)
 	w := NewWriter(buf)
-	w.PutUint64Be(64, 0x0123456789ABCDEF)
+	w.PutUint64(64, 0x0123456789ABCDEF)
 	w.Flush()
 	compare(t, buf, []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF})
 }
@@ -127,15 +127,15 @@ func TestFlushErrors(t *testing.T) {
 	buf := make([]byte, 2)
 
 	w := NewWriter(buf)
-	w.PutUint32Be(9, 0)
+	w.PutUint32(9, 0)
 	checkError(t, ErrUnderflow, w.Flush())
 
 	w = NewWriter(buf)
-	w.PutUint32Be(16, 0)
+	w.PutUint32(16, 0)
 	checkError(t, nil, w.Flush())
 
 	w = NewWriter(buf)
-	w.PutUint32Be(17, 0)
+	w.PutUint32(17, 0)
 	checkError(t, ErrOverflow, w.Flush())
 }
 
@@ -154,19 +154,19 @@ func TestWriteHelpers(t *testing.T) {
 	buf := []byte{0x00}
 	w := NewWriter(buf[:])
 	expect(t, int(8), w.Bits())
-	w.PutUint32Be(1, 0)
+	w.PutUint32(1, 0)
 	expect(t, int(1), w.Index())
 	expect(t, int(7), w.Bits())
-	w.PutUint32Be(1, 1)
-	w.PutUint32Be(5, 0)
-	w.PutUint32Be(1, 1)
+	w.PutUint32(1, 1)
+	w.PutUint32(5, 0)
+	w.PutUint32(1, 1)
 	err := w.Flush()
 	expect(t, buf, []byte{0x41})
 	expect(t, int(8), w.Index())
 	expect(t, int(0), w.Bits())
 	expect(t, 0, len(w.Bytes()))
 	expect(t, nil, err)
-	w.PutUint32Be(1, 0)
+	w.PutUint32(1, 0)
 	expect(t, int(9), w.Index())
 	expect(t, int(0), w.Bits())
 	expect(t, 0, len(w.Bytes()))
@@ -177,9 +177,9 @@ func TestBadSlices(t *testing.T) {
 	dst := []byte{0x00, 0x01, 0x02}
 	w := NewWriter(dst[:])
 	compare(t, w.Bytes(), dst[:])
-	w.PutUint32Be(8, 0)
+	w.PutUint32(8, 0)
 	compare(t, w.Bytes(), dst[1:])
-	w.PutUint32Be(16, 0)
+	w.PutUint32(16, 0)
 	expect(t, 0, len(w.Bytes()))
 }
 
@@ -203,13 +203,13 @@ func prepareBenchmark(size, chunk, align int) ([]byte, []uint, []uint64, int) {
 
 func bigWrite32(w *Writer, bits []uint, values []uint64, last int) {
 	for j := 0; j < last; j++ {
-		w.PutUint32Be(bits[j], uint32(values[j]))
+		w.PutUint32(bits[j], uint32(values[j]))
 	}
 }
 
 func bigWrite64(w *Writer, bits []uint, values []uint64, last int) {
 	for j := 0; j < last; j++ {
-		w.PutUint64Be(bits[j], values[j])
+		w.PutUint64(bits[j], values[j])
 	}
 }
 
