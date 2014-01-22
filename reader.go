@@ -40,7 +40,7 @@ import (
 	"encoding/binary"
 )
 
-// A reader wraps a raw byte array and provides multiple methods to read and
+// Reader wraps a raw byte array and provides multiple methods to read and
 // skip data bit-by-bit.
 // Its methods don't return the usual error as it is too expensive.
 // Instead, read errors can be checked with the Check() method

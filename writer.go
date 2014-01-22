@@ -8,7 +8,7 @@ import (
 	"errors"
 )
 
-// A writer wraps a raw byte array and provides multiple methoods to write data bit-by-bit
+// Writer wraps a raw byte array and provides multiple methoods to write data bit-by-bit
 // Its methods don't return the usual error as it is too expensive.
 // Instead, write errors can be checked with the Flush() method.
 type Writer struct {
