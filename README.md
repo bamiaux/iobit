@@ -1,4 +1,4 @@
-iobit
+iobit [![Codebot](https://codebot.io/badge/github.com/bamiaux/iobit.png)](http://codebot.io/doc/pkg/github.com/bamiaux/iobit "Codebot")
 =====
 
 Package iobit provides primitives for reading & writing bits
