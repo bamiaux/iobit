@@ -25,6 +25,16 @@ func testReads(t *testing.T, op ReadTestOp) {
 	}
 }
 
+func bitLoop(w *Writer, r *Reader, bits uint) {
+	for i := uint(0); i < bits; i++ {
+		v := uint32(0)
+		if r.IsBit() {
+			v = 1
+		}
+		w.PutUint32(1, v)
+	}
+}
+
 func bigUint64Loop(w *Writer, r *Reader, bits uint) {
 	w.PutUint64(bits, r.Uint64(bits))
 }
@@ -43,6 +53,7 @@ func littleInt64Loop(w *Writer, r *Reader, bits uint) {
 
 type ReadTestOp func(w *Writer, r *Reader, bits uint)
 
+func TestBitReads(t *testing.T)          { testReads(t, bitLoop) }
 func TestBigUint64Reads(t *testing.T)    { testReads(t, bigUint64Loop) }
 func TestBigInt64Reads(t *testing.T)     { testReads(t, bigInt64Loop) }
 func TestLittleUint64Reads(t *testing.T) { testReads(t, littleUint64Loop) }
