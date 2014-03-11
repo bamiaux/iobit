@@ -1,0 +1,17 @@
+#{{.Name}} [![GoDoc](https://godoc.org/{{.Import}}/web?status.png)](https://godoc.org/{{.Import}}) [![Build Status](https://travis-ci.org/bamiaux/iobit.png)](https://travis-ci.org/bamiaux/iobit)
+{{.Synopsis}}
+
+Download:
+```shell
+go get {{.Import}}
+```
+{{if .Library}}
+
+Full documentation at http://godoc.org/{{.Import}}
+{{end}}
+* * *
+{{.Doc}}
+{{if .Bugs}}
+#Bugs
+{{range .Bugs}}* {{.}}{{end}}
+{{end}}
