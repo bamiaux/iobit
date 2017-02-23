@@ -110,31 +110,75 @@ func (r *Reader) read32i(bits uint) int64 {
 	return int64(r.get64(bits)) >> (64 - bits)
 }
 
-// Useful helpers
-func (r *Reader) Byte() uint8             { return uint8(r.read32(8)) }
-func (r *Reader) Uint8(bits uint) uint8   { return uint8(r.read32(bits)) }
-func (r *Reader) Int8(bits uint) int8     { return int8(r.read32i(bits)) }
-func (r *Reader) Be16() uint16            { return uint16(r.read32(16)) }
-func (r *Reader) Uint16(bits uint) uint16 { return uint16(r.read32(bits)) }
-func (r *Reader) Int16(bits uint) int16   { return int16(r.read32i(bits)) }
-func (r *Reader) Le16() uint16            { return bswap16(r.Be16()) }
-func (r *Reader) Be32() uint32            { return uint32(r.read32(32)) }
-func (r *Reader) Uint32(bits uint) uint32 { return uint32(r.read32(bits)) }
-func (r *Reader) Int32(bits uint) int32   { return int32(r.read32i(bits)) }
-func (r *Reader) Le32() uint32            { return bswap32(r.Be32()) }
+// Byte reads one byte.
+func (r *Reader) Byte() uint8 {
+	return uint8(r.read32(8))
+}
 
+// Uint8 reads up to 8 unsigned bits in big-endian order.
+func (r *Reader) Uint8(bits uint) uint8 {
+	return uint8(r.read32(bits))
+}
+
+// Int8 reads up to 8 signed bits in big-endian order.
+func (r *Reader) Int8(bits uint) int8 {
+	return int8(r.read32i(bits))
+}
+
+// Be16 reads 16 unsigned bits in big-endian order.
+func (r *Reader) Be16() uint16 {
+	return uint16(r.read32(16))
+}
+
+// Uint16 reads up to 16 unsigned bits in big-endian order.
+func (r *Reader) Uint16(bits uint) uint16 {
+	return uint16(r.read32(bits))
+}
+
+// Int16 reads up to 16 signed bits in big-endian order.
+func (r *Reader) Int16(bits uint) int16 {
+	return int16(r.read32i(bits))
+}
+
+// Le16 reads 16 unsigned bits in litle-endian order.
+func (r *Reader) Le16() uint16 {
+	return bswap16(r.Be16())
+}
+
+// Be32 reads 32 unsigned bits in big-endian order.
+func (r *Reader) Be32() uint32 {
+	return uint32(r.read32(32))
+}
+
+// Uint32 reads up to 32 unsigned bits in big-endian order.
+func (r *Reader) Uint32(bits uint) uint32 {
+	return uint32(r.read32(bits))
+}
+
+// Int32 reads up to 32 signed bits in big-endian order.
+func (r *Reader) Int32(bits uint) int32 {
+	return int32(r.read32i(bits))
+}
+
+// Le32 reads 32 unsigned bits in little-endian order.
+func (r *Reader) Le32() uint32 {
+	return bswap32(r.Be32())
+}
+
+// Be64 reads 64 unsigned bits in big-endian order.
 func (r *Reader) Be64() uint64 {
 	v := r.Be32()
 	return uint64(v)<<32 | uint64(r.Be32())
 }
 
+// Le64 reads 64 unsigned bits in little-endian order.
 func (r *Reader) Le64() uint64 {
 	low := r.Be32()
 	high := r.Be32()
 	return uint64(bswap32(high))<<32 | uint64(bswap32(low))
 }
 
-// Uint64 reads up to 64 unsigned <bits> in big-endian order.
+// Uint64 reads up to 64 unsigned bits in big-endian order.
 func (r *Reader) Uint64(bits uint) uint64 {
 	var val uint64
 	if bits > 32 {
@@ -145,7 +189,7 @@ func (r *Reader) Uint64(bits uint) uint64 {
 	return val | r.read32(bits)
 }
 
-// Int64 reads up to 64 signed <bits> in big-endian order.
+// Int64 reads up to 64 signed bits in big-endian order.
 func (r *Reader) Int64(bits uint) int64 {
 	if bits <= 32 {
 		return r.read32i(bits)
@@ -162,7 +206,7 @@ func (r *Reader) Peek() *Reader {
 	return &p
 }
 
-// Skip skips <bits> bits.
+// Skip skips n bits.
 func (r *Reader) Skip(bits uint) {
 	r.idx += bits
 }
