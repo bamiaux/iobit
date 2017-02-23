@@ -84,12 +84,12 @@ func TestReadHelpers(t *testing.T) {
 	expect(t, uint(8), r.Index())
 	expect(t, uint(0), r.Bits())
 	expect(t, 0, len(r.Bytes()))
-	expect(t, nil, r.Check())
+	expect(t, nil, r.Error())
 	r.Skip(1)
 	expect(t, uint(9), r.Index())
 	expect(t, uint(0), r.Bits())
 	expect(t, 0, len(r.Bytes()))
-	expect(t, ErrOverflow, r.Check())
+	expect(t, ErrOverflow, r.Error())
 	// more helpers
 	d := []byte{
 		0x00, 0x11, 0x22, 0x33,

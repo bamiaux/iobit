@@ -234,8 +234,8 @@ func (r *Reader) Bytes() []byte {
 	return r.src[skip:r.size]
 }
 
-// Check returns whether the reader encountered an error.
-func (r *Reader) Check() error {
+// Error returns whether the reader encountered an error.
+func (r *Reader) Error() error {
 	if r.idx > r.size<<3 {
 		return ErrOverflow
 	}
