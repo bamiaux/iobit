@@ -45,11 +45,10 @@ import (
 // Its methods don't return the usual error as it is too expensive.
 // Instead, read errors can be checked with the Check() method
 type Reader struct {
-	src   []byte
-	cache uint64
-	idx   uint
-	max   uint
-	size  uint
+	src  []byte
+	idx  uint
+	max  uint
+	size uint
 }
 
 // NewReader returns a new reader reading from <src> byte array.
