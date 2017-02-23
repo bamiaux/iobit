@@ -39,10 +39,6 @@ and write it like this:
 */
 package iobit
 
-import (
-	"encoding/binary"
-)
-
 // Reader wraps a raw byte array and provides multiple methods to read and
 // skip data bit-by-bit.
 // Its methods don't return the usual error as it is too expensive.
@@ -96,9 +92,15 @@ func (r *Reader) Bit() bool {
 	return val != 0
 }
 
+func load64(b []byte) uint64 {
+	_ = b[7] // bounds check hint to compiler; see golang.org/issue/14808
+	return uint64(b[7]) | uint64(b[6])<<8 | uint64(b[5])<<16 | uint64(b[4])<<24 |
+		uint64(b[3])<<32 | uint64(b[2])<<40 | uint64(b[1])<<48 | uint64(b[0])<<56
+}
+
 func (r *Reader) get64(bits uint) uint64 {
 	skip := min(r.idx>>5<<2, r.max)
-	val := binary.BigEndian.Uint64(r.src[skip:])
+	val := load64(r.src[skip:])
 	val <<= r.idx - skip<<3
 	r.idx += bits
 	return val
