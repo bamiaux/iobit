@@ -43,21 +43,11 @@ func bigInt64Loop(w *Writer, r *Reader, bits uint) {
 	w.PutUint64(bits, uint64(r.Int64(bits)))
 }
 
-func littleUint64Loop(w *Writer, r *Reader, bits uint) {
-	w.PutUint64Le(bits, r.Uint64Le(bits))
-}
-
-func littleInt64Loop(w *Writer, r *Reader, bits uint) {
-	w.PutUint64Le(bits, uint64(r.Int64Le(bits)))
-}
-
 type ReadTestOp func(w *Writer, r *Reader, bits uint)
 
-func TestBitReads(t *testing.T)          { testReads(t, bitLoop) }
-func TestBigUint64Reads(t *testing.T)    { testReads(t, bigUint64Loop) }
-func TestBigInt64Reads(t *testing.T)     { testReads(t, bigInt64Loop) }
-func TestLittleUint64Reads(t *testing.T) { testReads(t, littleUint64Loop) }
-func TestLittleInt64Reads(t *testing.T)  { testReads(t, littleInt64Loop) }
+func TestBitReads(t *testing.T)       { testReads(t, bitLoop) }
+func TestBigUint64Reads(t *testing.T) { testReads(t, bigUint64Loop) }
+func TestBigInt64Reads(t *testing.T)  { testReads(t, bigInt64Loop) }
 
 func TestSigned(t *testing.T) {
 	big := []byte{0x7E}
@@ -125,85 +115,49 @@ func TestBadSliceRead(t *testing.T) {
 	expect(t, 0, len(r.Bytes()))
 }
 
-func bigReadUint32(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Uint32(bits[j])
-	}
+var Output int64
+
+type ReadBench struct {
+	name string
+	op   func(r *Reader) int64
 }
 
-func bigReadUint64(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Uint64(bits[j])
-	}
-}
-
-func bigReadInt32(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Int32(bits[j])
-	}
-}
-
-func bigReadInt64(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Int64(bits[j])
-	}
-}
-
-func littleReadUint32(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Uint32Le(bits[j])
-	}
-}
-
-func littleReadUint64(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Uint64Le(bits[j])
-	}
-}
-
-func littleReadInt32(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Int32Le(bits[j])
-	}
-}
-
-func littleReadInt64(r *Reader, bits []uint, last int) {
-	for j := 0; j < last; j++ {
-		r.Int64Le(bits[j])
-	}
-}
-
-type ReadOp func(*Reader, []uint, int)
-
-func benchmarkReads(b *testing.B, op ReadOp, chunk, align int) {
-	size := 1 << 12
-	buf, bits, _, last := prepareBenchmark(size, chunk, align)
-	b.SetBytes(int64(len(buf)))
+func BenchmarkReads(b *testing.B) {
+	buf := makeSource(32)
 	r := NewReader(buf)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r.Reset()
-		op(r, bits, last)
+	bitbench := ReadBench{"bit", func(r *Reader) int64 {
+		if r.IsBit() {
+			return 1
+		}
+		return 0
+	}}
+	for _, v := range []ReadBench{
+		bitbench,
+		{"byte", func(r *Reader) int64 { return int64(r.Uint32(8)) }},
+		{"le16", func(r *Reader) int64 { return int64(r.Uint32Le(16)) }},
+		{"be16", func(r *Reader) int64 { return int64(r.Uint32(16)) }},
+		{"le32", func(r *Reader) int64 { return int64(r.Uint32Le(32)) }},
+		{"be32", func(r *Reader) int64 { return int64(r.Uint32(32)) }},
+		{"le64", func(r *Reader) int64 { return int64(r.Uint64Le(64)) }},
+		{"be64", func(r *Reader) int64 { return int64(r.Uint64(64)) }},
+		{"u8 7bits", func(r *Reader) int64 { return int64(r.Uint32(7)) }},
+		{"i8 7bits", func(r *Reader) int64 { return int64(r.Int32(7)) }},
+		{"u16 15bits", func(r *Reader) int64 { return int64(r.Uint32(15)) }},
+		{"i16 15bits", func(r *Reader) int64 { return int64(r.Int32(15)) }},
+		{"u32 31bits", func(r *Reader) int64 { return int64(r.Uint32(31)) }},
+		{"i32 31bits", func(r *Reader) int64 { return int64(r.Int32(31)) }},
+		{"u64 63bits", func(r *Reader) int64 { return int64(r.Uint64(63)) }},
+		{"i64 63bits", func(r *Reader) int64 { return int64(r.Int64(63)) }},
+	} {
+		b.Run(v.name, func(bb *testing.B) {
+			bb.SetBytes(int64(len(buf)))
+			for i := 0; i < bb.N; i++ {
+				r.Reset()
+				for r.Bits() > 0 {
+					Output += v.op(r)
+				}
+			}
+		})
 	}
 }
-
-func BenchmarkBigEndianReadUint32Align1(b *testing.B)     { benchmarkReads(b, bigReadUint32, 32, 1) }
-func BenchmarkBigEndianReadUint32Align32(b *testing.B)    { benchmarkReads(b, bigReadUint32, 32, 32) }
-func BenchmarkBigEndianReadUint64Align1(b *testing.B)     { benchmarkReads(b, bigReadUint64, 64, 1) }
-func BenchmarkBigEndianReadUint64Align32(b *testing.B)    { benchmarkReads(b, bigReadUint64, 64, 32) }
-func BenchmarkBigEndianReadUint64Align64(b *testing.B)    { benchmarkReads(b, bigReadUint64, 64, 64) }
-func BenchmarkBigEndianReadInt32Align1(b *testing.B)      { benchmarkReads(b, bigReadInt32, 32, 1) }
-func BenchmarkBigEndianReadInt32Align32(b *testing.B)     { benchmarkReads(b, bigReadInt32, 32, 32) }
-func BenchmarkBigEndianReadInt64Align1(b *testing.B)      { benchmarkReads(b, bigReadInt64, 64, 1) }
-func BenchmarkBigEndianReadInt64Align32(b *testing.B)     { benchmarkReads(b, bigReadInt64, 64, 32) }
-func BenchmarkBigEndianReadInt64Align64(b *testing.B)     { benchmarkReads(b, bigReadInt64, 64, 64) }
-func BenchmarkLittleEndianReadUint32Align1(b *testing.B)  { benchmarkReads(b, littleReadUint32, 32, 1) }
-func BenchmarkLittleEndianReadUint32Align32(b *testing.B) { benchmarkReads(b, littleReadUint32, 32, 32) }
-func BenchmarkLittleEndianReadUint64Align1(b *testing.B)  { benchmarkReads(b, littleReadUint64, 64, 1) }
-func BenchmarkLittleEndianReadUint64Align32(b *testing.B) { benchmarkReads(b, littleReadUint64, 64, 32) }
-func BenchmarkLittleEndianReadUint64Align64(b *testing.B) { benchmarkReads(b, littleReadUint64, 64, 64) }
-func BenchmarkLittleEndianReadInt32Align1(b *testing.B)   { benchmarkReads(b, littleReadInt32, 32, 1) }
-func BenchmarkLittleEndianReadInt32Align32(b *testing.B)  { benchmarkReads(b, littleReadInt32, 32, 32) }
-func BenchmarkLittleEndianReadInt64Align1(b *testing.B)   { benchmarkReads(b, littleReadInt64, 64, 1) }
-func BenchmarkLittleEndianReadInt64Align32(b *testing.B)  { benchmarkReads(b, littleReadInt64, 64, 32) }
-func BenchmarkLittleEndianReadInt64Align64(b *testing.B)  { benchmarkReads(b, littleReadInt64, 64, 64) }
