@@ -17,7 +17,7 @@ func testReads(t *testing.T, op ReadTestOp) {
 		w := NewWriter(dst)
 		for read := 0; read < max; {
 			bits := getNumBits(read, max, 64, i)
-			op(w, r, uint(bits))
+			op(w, &r, uint(bits))
 			read += bits
 		}
 		flushCheck(t, w)
@@ -164,7 +164,7 @@ func BenchmarkReads(b *testing.B) {
 			for i := 0; i < bb.N; i++ {
 				r.Reset()
 				for r.Bits() > 0 {
-					Output += v.op(r)
+					Output += v.op(&r)
 				}
 			}
 		})

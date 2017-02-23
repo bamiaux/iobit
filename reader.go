@@ -55,9 +55,9 @@ type Reader struct {
 }
 
 // NewReader returns a new reader reading from <src> byte array.
-func NewReader(src []byte) *Reader {
+func NewReader(src []byte) Reader {
 	if len(src) >= 8 {
-		return &Reader{
+		return Reader{
 			src:  src,
 			max:  uint(len(src) - 8),
 			size: uint(len(src)),
@@ -65,7 +65,7 @@ func NewReader(src []byte) *Reader {
 	}
 	clone := make([]byte, 8)
 	copy(clone, src)
-	return &Reader{
+	return Reader{
 		src:  clone,
 		size: uint(len(src)),
 	}
