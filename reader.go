@@ -10,6 +10,9 @@ custom bit-masks when reading or writing bitstreams, and to ease
 maintenance. This is true especially when you need to read/write
 data which is not aligned on bytes.
 
+Errors are sticky so you can check for errors after a chunk of
+meaningful work rather than after every operation.
+
 For example, with iobit you can read an MPEG-TS PCR like this:
 
     r := iobit.NewReader(buffer)
