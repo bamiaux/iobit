@@ -77,7 +77,7 @@ func min(a, b uint) uint {
 }
 
 // IsBit reads the next bit as a boolean.
-func (r *Reader) IsBit() bool {
+func (r *Reader) Bit() bool {
 	skip := min(r.idx>>3, r.max+7)
 	val := r.src[skip]
 	val <<= r.idx - skip<<3
@@ -95,6 +95,19 @@ func (r *Reader) Uint32(bits uint) uint32 {
 	r.idx += bits
 	return uint32(val)
 }
+
+// Useful helpers
+func (r *Reader) Byte() uint8             { return uint8(r.Uint32(8)) }
+func (r *Reader) Be16() uint16            { return uint16(r.Uint32(16)) }
+func (r *Reader) Be32() uint32            { return r.Uint32(32) }
+func (r *Reader) Be64() uint64            { return r.Uint64(64) }
+func (r *Reader) Le16() uint16            { return uint16(r.Uint32Le(16)) }
+func (r *Reader) Le32() uint32            { return r.Uint32Le(32) }
+func (r *Reader) Le64() uint64            { return r.Uint64Le(64) }
+func (r *Reader) Uint8(bits uint) uint8   { return uint8(r.Uint32(bits)) }
+func (r *Reader) Int8(bits uint) int8     { return int8(r.Int32(bits)) }
+func (r *Reader) Uint16(bits uint) uint16 { return uint16(r.Uint32(bits)) }
+func (r *Reader) Int16(bits uint) int16   { return int16(r.Int32(bits)) }
 
 // Int32 reads up to 32 signed <bits> in big-endian order.
 func (r *Reader) Int32(bits uint) int32 {

@@ -28,7 +28,7 @@ func testReads(t *testing.T, op ReadTestOp) {
 func bitLoop(w *Writer, r *Reader, bits uint) {
 	for i := uint(0); i < bits; i++ {
 		v := uint32(0)
-		if r.IsBit() {
+		if r.Bit() {
 			v = 1
 		}
 		w.PutUint32(1, v)
@@ -85,14 +85,14 @@ func TestReadHelpers(t *testing.T) {
 	expect(t, uint(7), r.Bits())
 	for i := 0; i < 8; i++ {
 		p := r.Peek()
-		expect(t, true, p.IsBit())
-		expect(t, false, p.IsBit())
+		expect(t, true, p.Bit())
+		expect(t, false, p.Bit())
 	}
-	expect(t, true, r.IsBit())
+	expect(t, true, r.Bit())
 	for i := 0; i < 5; i++ {
-		expect(t, false, r.IsBit())
+		expect(t, false, r.Bit())
 	}
-	expect(t, true, r.IsBit())
+	expect(t, true, r.Bit())
 	expect(t, uint(8), r.Index())
 	expect(t, uint(0), r.Bits())
 	expect(t, 0, len(r.Bytes()))
@@ -102,6 +102,27 @@ func TestReadHelpers(t *testing.T) {
 	expect(t, uint(0), r.Bits())
 	expect(t, 0, len(r.Bytes()))
 	expect(t, ErrOverflow, r.Check())
+	// more helpers
+	d := []byte{
+		0x00, 0x11, 0x22, 0x33,
+		0x44, 0x55, 0x66, 0x77, 0x88,
+	}
+	r = NewReader(d)
+	expect(t, uint16(0x11<<8|0x00), r.Le16())
+	expect(t, uint16(0x22<<8|0x33), r.Be16())
+	expect(t, uint32(0x77<<24|0x66<<16|0x55<<8|0x44), r.Le32())
+	expect(t, byte(0x88), r.Byte())
+	r.Reset()
+	expect(t, uint32(0x00<<24|0x11<<16|0x22<<8|0x33), r.Be32())
+	r.Reset()
+	expect(t, uint64(0x77<<56|0x66<<48|0x55<<40|0x44<<32|0x33<<24|0x22<<16|0x11<<8|0x00), r.Le64())
+	r.Reset()
+	expect(t, uint64(0x00<<56|0x11<<48|0x22<<40|0x33<<32|0x44<<24|0x55<<16|0x66<<8|0x77), r.Be64())
+	r.Reset()
+	expect(t, uint8(r.Peek().Uint32(7)), r.Uint8(7))
+	expect(t, int8(r.Peek().Int32(7)), r.Int8(7))
+	expect(t, uint16(r.Peek().Uint32(15)), r.Uint16(15))
+	expect(t, int16(r.Peek().Int32(15)), r.Int16(15))
 }
 
 func TestBadSliceRead(t *testing.T) {
@@ -127,24 +148,24 @@ func BenchmarkReads(b *testing.B) {
 	r := NewReader(buf)
 	b.ResetTimer()
 	bitbench := ReadBench{"bit", func(r *Reader) int64 {
-		if r.IsBit() {
+		if r.Bit() {
 			return 1
 		}
 		return 0
 	}}
 	for _, v := range []ReadBench{
 		bitbench,
-		{"byte", func(r *Reader) int64 { return int64(r.Uint32(8)) }},
-		{"le16", func(r *Reader) int64 { return int64(r.Uint32Le(16)) }},
-		{"be16", func(r *Reader) int64 { return int64(r.Uint32(16)) }},
-		{"le32", func(r *Reader) int64 { return int64(r.Uint32Le(32)) }},
-		{"be32", func(r *Reader) int64 { return int64(r.Uint32(32)) }},
-		{"le64", func(r *Reader) int64 { return int64(r.Uint64Le(64)) }},
-		{"be64", func(r *Reader) int64 { return int64(r.Uint64(64)) }},
-		{"u8 7bits", func(r *Reader) int64 { return int64(r.Uint32(7)) }},
-		{"i8 7bits", func(r *Reader) int64 { return int64(r.Int32(7)) }},
-		{"u16 15bits", func(r *Reader) int64 { return int64(r.Uint32(15)) }},
-		{"i16 15bits", func(r *Reader) int64 { return int64(r.Int32(15)) }},
+		{"byte", func(r *Reader) int64 { return int64(r.Byte()) }},
+		{"le16", func(r *Reader) int64 { return int64(r.Le16()) }},
+		{"be16", func(r *Reader) int64 { return int64(r.Be16()) }},
+		{"le32", func(r *Reader) int64 { return int64(r.Le32()) }},
+		{"be32", func(r *Reader) int64 { return int64(r.Be32()) }},
+		{"le64", func(r *Reader) int64 { return int64(r.Le64()) }},
+		{"be64", func(r *Reader) int64 { return int64(r.Be64()) }},
+		{"u8 7bits", func(r *Reader) int64 { return int64(r.Uint8(7)) }},
+		{"i8 7bits", func(r *Reader) int64 { return int64(r.Int8(7)) }},
+		{"u16 15bits", func(r *Reader) int64 { return int64(r.Uint16(15)) }},
+		{"i16 15bits", func(r *Reader) int64 { return int64(r.Int16(15)) }},
 		{"u32 31bits", func(r *Reader) int64 { return int64(r.Uint32(31)) }},
 		{"i32 31bits", func(r *Reader) int64 { return int64(r.Int32(31)) }},
 		{"u64 63bits", func(r *Reader) int64 { return int64(r.Uint64(63)) }},
