@@ -75,6 +75,18 @@ func min(a, b uint) uint {
 	return a
 }
 
+func bswap16(v uint16) uint16 {
+	return v>>8 | v<<8
+}
+
+func bswap32(val uint32) uint32 {
+	return uint32(bswap16(uint16(val>>16))) | uint32(bswap16(uint16(val&0xFFFF)))<<16
+}
+
+func bswap64(val uint64) uint64 {
+	return uint64(bswap32(uint32(val>>32))) | uint64(bswap32(uint32(val&0xFFFFFFFF)))<<32
+}
+
 // IsBit reads the next bit as a boolean.
 func (r *Reader) Bit() bool {
 	skip := min(r.idx>>3, r.max+7)
@@ -100,9 +112,9 @@ func (r *Reader) Byte() uint8             { return uint8(r.Uint32(8)) }
 func (r *Reader) Be16() uint16            { return uint16(r.Uint32(16)) }
 func (r *Reader) Be32() uint32            { return r.Uint32(32) }
 func (r *Reader) Be64() uint64            { return r.Uint64(64) }
-func (r *Reader) Le16() uint16            { return uint16(r.Uint32Le(16)) }
-func (r *Reader) Le32() uint32            { return r.Uint32Le(32) }
-func (r *Reader) Le64() uint64            { return r.Uint64Le(64) }
+func (r *Reader) Le16() uint16            { return bswap16(uint16(r.Uint32(16))) }
+func (r *Reader) Le32() uint32            { return bswap32(r.Uint32(32)) }
+func (r *Reader) Le64() uint64            { return bswap64(r.Uint64(64)) }
 func (r *Reader) Uint8(bits uint) uint8   { return uint8(r.Uint32(bits)) }
 func (r *Reader) Int8(bits uint) int8     { return int8(r.Int32(bits)) }
 func (r *Reader) Uint16(bits uint) uint16 { return uint16(r.Uint32(bits)) }
@@ -137,46 +149,6 @@ func extend(v uint64, bits uint) int64 {
 // Int64 reads up to 64 signed <bits> in big-endian order.
 func (r *Reader) Int64(bits uint) int64 {
 	return extend(r.Uint64(bits), bits)
-}
-
-func bswap32(val uint32) uint32 {
-	return val>>24 | val>>8&0xFF00 | val<<8&0xFF0000 | val<<24
-}
-
-// Uint32Le reads up to 32 unsigned <bits> in little-endian order.
-func (r *Reader) Uint32Le(bits uint) uint32 {
-	skip := min(r.idx>>5<<2, r.max)
-	offset := r.idx - skip<<3
-	r.idx += bits
-	big := binary.BigEndian.Uint64(r.src[skip:])
-	val := bswap32(uint32(big << offset >> 32))
-	left, right := bits&7, bits&0xF8
-	sub := val >> (8 - left)
-	sub &= ^(^uint32(0) << left) << right
-	val &= ^(^uint32(0) << right)
-	return sub + val
-}
-
-// Int32Le reads up to 32 signed <bits> in little-endian order.
-func (r *Reader) Int32Le(bits uint) int32 {
-	return int32(extend(uint64(r.Uint32Le(bits)), bits))
-}
-
-// Uint64Le reads up to 64 unsigned <bits> in little-endian order.
-func (r *Reader) Uint64Le(bits uint) uint64 {
-	var val uint64
-	var shift uint
-	if bits > 32 {
-		val = uint64(r.Uint32Le(32))
-		bits -= 32
-		shift = 32
-	}
-	return val + uint64(r.Uint32Le(bits))<<shift
-}
-
-// Int64Le reads up to 64 signed <bits> in little-endian order.
-func (r *Reader) Int64Le(bits uint) int64 {
-	return extend(r.Uint64Le(bits), bits)
 }
 
 // Peek returns a reader copy.

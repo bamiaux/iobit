@@ -62,18 +62,6 @@ func TestSigned(t *testing.T) {
 	expect(t, int64(-1), r.Int64(1))
 	expect(t, int64(-1), r.Int64(33))
 	expect(t, int64(0), r.Int64(5))
-	lil := []byte{0x7F, 0xFE}
-	r = NewReader(lil)
-	expect(t, int32(0), r.Int32Le(1))
-	expect(t, int32(-1), r.Int32Le(1))
-	expect(t, int32(-1), r.Int32Le(13))
-	expect(t, int32(0), r.Int32Le(1))
-	lil = []byte{0x7F, 0x7F, 0xFF, 0xFF, 0xE0}
-	r = NewReader(lil)
-	expect(t, int64(0), r.Int64Le(1))
-	expect(t, int64(-1), r.Int64Le(1))
-	expect(t, int64(-3), r.Int64Le(33))
-	expect(t, int64(0), r.Int64Le(5))
 }
 
 func TestReadHelpers(t *testing.T) {
