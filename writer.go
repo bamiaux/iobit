@@ -5,6 +5,7 @@
 package iobit
 
 import (
+	"encoding/binary"
 	"errors"
 )
 
@@ -34,10 +35,7 @@ func (w *Writer) PutUint32(bits uint, val uint32) {
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
 		if w.idx+4 <= len(w.dst) {
-			w.dst[w.idx+0] = byte(w.cache >> 56)
-			w.dst[w.idx+1] = byte(w.cache >> 48)
-			w.dst[w.idx+2] = byte(w.cache >> 40)
-			w.dst[w.idx+3] = byte(w.cache >> 32)
+			binary.BigEndian.PutUint32(w.dst[w.idx:], uint32(w.cache>>32))
 		}
 		w.idx += 4
 		w.cache <<= 32
@@ -57,10 +55,7 @@ func (w *Writer) PutUint32Le(bits uint, val uint32) {
 	// manually inlined until compiler improves
 	if w.fill+bits > 64 {
 		if w.idx+4 <= len(w.dst) {
-			w.dst[w.idx+0] = byte(w.cache >> 56)
-			w.dst[w.idx+1] = byte(w.cache >> 48)
-			w.dst[w.idx+2] = byte(w.cache >> 40)
-			w.dst[w.idx+3] = byte(w.cache >> 32)
+			binary.BigEndian.PutUint32(w.dst[w.idx:], uint32(w.cache>>32))
 		}
 		w.idx += 4
 		w.cache <<= 32
