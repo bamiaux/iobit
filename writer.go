@@ -49,12 +49,12 @@ func (w *Writer) PutUint32(bits uint, val uint32) {
 
 // PutUint64 writes up to 64 <bits> from <val> in big-endian order.
 func (w *Writer) PutUint64(bits uint, val uint64) {
-	if bits > 32 {
+	if bits <= 32 {
+		w.PutUint32(bits, uint32(val))
+	} else {
 		w.PutUint32(bits-32, uint32(val>>32))
-		bits = 32
-		val &= 0xFFFFFFFF
+		w.PutBe32(uint32(val))
 	}
-	w.PutUint32(bits, uint32(val))
 }
 
 // PutBit writes one bit to output.
