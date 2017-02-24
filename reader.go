@@ -92,7 +92,7 @@ func (r *Reader) Bit() bool {
 	val := r.src[skip]
 	val <<= r.idx - skip<<3
 	val >>= 7
-	r.idx += 1
+	r.idx++
 	return val != 0
 }
 

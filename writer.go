@@ -20,10 +20,10 @@ type Writer struct {
 }
 
 var (
-	// Trying to write too many bits
+	// ErrOverflow happens when trying to write too many bits
 	ErrOverflow = errors.New("bit overflow")
 
-	// Not enough bits to flush
+	// ErrUnderflow happens when flushing unaligned writers
 	ErrUnderflow = errors.New("bit underflow")
 )
 
@@ -139,7 +139,7 @@ func (w *Writer) PutInt64(bits uint, val int64) {
 func (w *Writer) Flush() error {
 	for w.fill >= 8 && w.idx < len(w.dst) {
 		w.dst[w.idx] = byte(w.cache >> 56)
-		w.idx += 1
+		w.idx++
 		w.cache <<= 8
 		w.fill -= 8
 	}
