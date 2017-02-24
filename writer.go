@@ -93,8 +93,8 @@ func (w *Writer) PutBe32(val uint32) {
 
 // PutLe64 writes 64 bits in little-endian order.
 func (w *Writer) PutLe64(val uint64) {
-	w.PutLe32(uint32(val & 0xFFFFFFFF))
-	w.PutLe32(uint32(val >> 32 & 0xFFFFFFFF))
+	w.PutLe32(uint32(val))
+	w.PutLe32(uint32(val >> 32))
 }
 
 // PutBe64 writes 64 bits in big-endian order.
