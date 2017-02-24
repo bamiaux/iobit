@@ -83,7 +83,7 @@ func bswap16(v uint16) uint16 {
 }
 
 func bswap32(val uint32) uint32 {
-	return uint32(bswap16(uint16(val>>16))) | uint32(bswap16(uint16(val&0xFFFF)))<<16
+	return uint32(bswap16(uint16(val>>16))) | uint32(bswap16(uint16(val)))<<16
 }
 
 // IsBit reads the next bit as a boolean.
