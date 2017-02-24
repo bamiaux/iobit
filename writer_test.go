@@ -92,15 +92,6 @@ func TestSmall64BigEndianWrite(t *testing.T) {
 	compare(t, buf, []byte{0x00, 0x00, 0x00, 0x00, 0x80})
 }
 
-func TestSmall64LittleEndianWrite(t *testing.T) {
-	buf := make([]byte, 5)
-	w := NewWriter(buf)
-	w.PutUint64Le(33, 0xFFFFFFFE00000001)
-	w.PutUint32Le(7, 0)
-	w.Flush()
-	compare(t, buf, []byte{0x01, 0x00, 0x00, 0x00, 0x00})
-}
-
 func TestBigEndianWrite(t *testing.T) {
 	buf := make([]byte, 8)
 	w := NewWriter(buf)
@@ -112,7 +103,7 @@ func TestBigEndianWrite(t *testing.T) {
 func TestLittleEndianWrite(t *testing.T) {
 	buf := make([]byte, 8)
 	w := NewWriter(buf)
-	w.PutUint64Le(64, 0x0123456789ABCDEF)
+	w.PutLe64(0x0123456789ABCDEF)
 	w.Flush()
 	compare(t, buf, []byte{0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01})
 }

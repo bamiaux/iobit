@@ -47,30 +47,6 @@ func (w *Writer) PutUint32(bits uint, val uint32) {
 	w.cache |= u
 }
 
-// PutUint32Le writes up to 32 <bits> from <val> in little-endian order.
-func (w *Writer) PutUint32Le(bits uint, val uint32) {
-	val = bswap32(val)
-	left, right := bits&7, bits&0xF8
-	sub := val >> (24 - right)
-	// manually inlined until compiler improves
-	if w.fill+bits > 64 {
-		if w.idx+4 <= len(w.dst) {
-			binary.BigEndian.PutUint32(w.dst[w.idx:], uint32(w.cache>>32))
-		}
-		w.idx += 4
-		w.cache <<= 32
-		w.fill -= 32
-	}
-	mask := ^uint32(0) << left
-	sub &= ^mask
-	val >>= 32 - bits
-	val &= mask
-	u := uint64(val + sub)
-	u <<= 64 - w.fill - bits
-	w.fill += bits
-	w.cache |= u
-}
-
 // PutUint64 writes up to 64 <bits> from <val> in big-endian order.
 func (w *Writer) PutUint64(bits uint, val uint64) {
 	if bits > 32 {
@@ -79,16 +55,6 @@ func (w *Writer) PutUint64(bits uint, val uint64) {
 		val &= 0xFFFFFFFF
 	}
 	w.PutUint32(bits, uint32(val))
-}
-
-// PutUint64Le writes up to 64 <bits> from <val> in little-endian order.
-func (w *Writer) PutUint64Le(bits uint, val uint64) {
-	if bits > 32 {
-		w.PutUint32Le(32, uint32(val&0xFFFFFFFF))
-		bits -= 32
-		val >>= 32
-	}
-	w.PutUint32Le(bits, uint32(val))
 }
 
 // PutBit writes one bit to output.
