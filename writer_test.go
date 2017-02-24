@@ -78,7 +78,7 @@ func TestWrites(t *testing.T) {
 	dst := make([]byte, len(src))
 	for i := 32; i > 0; i >>= 1 {
 		w := NewWriter(dst)
-		testWrites(w, t, i, src)
+		testWrites(&w, t, i, src)
 		compare(t, src, dst)
 	}
 }
@@ -263,7 +263,7 @@ func BenchmarkWrites(b *testing.B) {
 			for i := 0; i < bb.N; i++ {
 				w.Reset()
 				for _, k := range src {
-					v.op(w, k)
+					v.op(&w, k)
 				}
 			}
 		})

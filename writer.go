@@ -25,8 +25,8 @@ var (
 )
 
 // NewWriter returns a new writer writing to output byte array.
-func NewWriter(dst []byte) *Writer {
-	return &Writer{dst: dst}
+func NewWriter(dst []byte) Writer {
+	return Writer{dst: dst}
 }
 
 // PutUint32 writes up to 32 bits in big-endian order.
