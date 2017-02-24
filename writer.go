@@ -32,13 +32,13 @@ func NewWriter(dst []byte) Writer {
 // PutUint32 writes up to 32 bits in big-endian order.
 func (w *Writer) PutUint32(bits uint, val uint32) {
 	u := uint64(val) << (64 - bits)
-	if w.fill+bits > 64 {
+	if w.fill > 64-bits {
 		if w.idx+4 <= len(w.dst) {
 			binary.BigEndian.PutUint32(w.dst[w.idx:], uint32(w.cache>>32))
-			w.cache <<= 32
 		}
 		w.idx += 4
 		w.fill -= 32
+		w.cache <<= 32
 	}
 	u >>= w.fill
 	w.fill += bits
@@ -90,13 +90,14 @@ func (w *Writer) PutBe32(val uint32) {
 
 // PutLe64 writes 64 bits in little-endian order.
 func (w *Writer) PutLe64(val uint64) {
-	w.PutLe32(uint32(val))
-	w.PutLe32(uint32(val >> 32))
+	w.PutBe32(bswap32(uint32(val)))
+	w.PutBe32(bswap32(uint32(val >> 32)))
 }
 
 // PutBe64 writes 64 bits in big-endian order.
 func (w *Writer) PutBe64(val uint64) {
-	w.PutUint64(64, val)
+	w.PutBe32(uint32(val >> 32))
+	w.PutBe32(uint32(val))
 }
 
 // PutUint8 writes up to 8 bits.
