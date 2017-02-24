@@ -96,6 +96,80 @@ func (w *Writer) PutUint64Le(bits uint, val uint64) {
 	w.PutUint32Le(bits, uint32(val))
 }
 
+// PutBit writes one bit to output.
+func (w *Writer) PutBit(val bool) {
+	v := uint32(0)
+	if val {
+		v = 1
+	}
+	w.PutUint32(1, v)
+}
+
+// PutByte writes one byte.
+func (w *Writer) PutByte(val byte) {
+	w.PutUint32(8, uint32(val))
+}
+
+// PutLe16 writes 16 bits in little-endian order.
+func (w *Writer) PutLe16(val uint16) {
+	w.PutUint32Le(16, uint32(val))
+}
+
+// PutBe16 writes 16 bits in big-endian order.
+func (w *Writer) PutBe16(val uint16) {
+	w.PutUint32(16, uint32(val))
+}
+
+// PutLe32 writes 32 bits in little-endian order.
+func (w *Writer) PutLe32(val uint32) {
+	w.PutUint32Le(32, val)
+}
+
+// PutBe32 writes 32 bits in big-endian order.
+func (w *Writer) PutBe32(val uint32) {
+	w.PutUint32(32, val)
+}
+
+// PutLe64 writes 64 bits in little-endian order.
+func (w *Writer) PutLe64(val uint64) {
+	w.PutUint64Le(64, val)
+}
+
+// PutBe64 writes 64 bits in big-endian order.
+func (w *Writer) PutBe64(val uint64) {
+	w.PutUint64(64, val)
+}
+
+// PutUint8 writes up to 8 bits.
+func (w *Writer) PutUint8(bits uint, val byte) {
+	w.PutUint32(bits, uint32(val))
+}
+
+// PutInt8 writes up to 8 signed bits.
+func (w *Writer) PutInt8(bits uint, val int8) {
+	w.PutUint32(bits, uint32(val))
+}
+
+// PutUint16 writes up to 16 bits in big-endian order.
+func (w *Writer) PutUint16(bits uint, val uint16) {
+	w.PutUint32(bits, uint32(val))
+}
+
+// PutInt16 writes up to 16 signed bits in big-endian order.
+func (w *Writer) PutInt16(bits uint, val int16) {
+	w.PutUint32(bits, uint32(val))
+}
+
+// PutInt32 writes up to 32 signed bits in big-endian order.
+func (w *Writer) PutInt32(bits uint, val int32) {
+	w.PutUint32(bits, uint32(val))
+}
+
+// PutInt64 writes up to 64 signed bits in big-endian order.
+func (w *Writer) PutInt64(bits uint, val int64) {
+	w.PutUint64(bits, uint64(val))
+}
+
 // Flush flushes the writer to its underlying buffer.
 // Returns ErrUnderflow if the output is not byte-aligned.
 // Returns ErrOverflow if the output array is too small.

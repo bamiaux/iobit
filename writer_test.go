@@ -150,6 +150,10 @@ func expect(t *testing.T, a, b interface{}) {
 		file, line, typea, a, typeb, b)
 }
 
+func bswap64(v uint64) uint64 {
+	return uint64(bswap32(uint32(v>>32))) | uint64(bswap32(uint32(v&0xFFFFFFFF)))<<32
+}
+
 func TestWriteHelpers(t *testing.T) {
 	buf := []byte{0x00}
 	w := NewWriter(buf[:])
@@ -171,6 +175,54 @@ func TestWriteHelpers(t *testing.T) {
 	expect(t, int(0), w.Bits())
 	expect(t, 0, len(w.Bytes()))
 	expect(t, ErrOverflow, w.Flush())
+	src := uint64(0x1234ABCDEF556789)
+	dst := make([]byte, 64)
+	w = NewWriter(dst)
+	expectwrite := func(bits uint, swap bool) {
+		for w.Index()&7 != 0 {
+			w.PutUint32(1, 0)
+		}
+		r := NewReader(dst)
+		expect(t, nil, w.Flush())
+		w.Reset()
+		expected := src << (64 - bits)
+		if swap {
+			expected = bswap64(expected) << (64 - bits)
+		}
+		expect(t, r.Uint64(bits)<<(64-bits), expected)
+	}
+	w.PutBit(src&1 != 0)
+	expectwrite(1, false)
+	w.PutByte(uint8(src & 0xFF))
+	expectwrite(8, false)
+	w.PutLe16(uint16(src & 0xFFFF))
+	expectwrite(16, true)
+	w.PutBe16(uint16(src & 0xFFFF))
+	expectwrite(16, false)
+	w.PutLe32(uint32(src & 0xFFFFFFFF))
+	expectwrite(32, true)
+	w.PutBe32(uint32(src & 0xFFFFFFFF))
+	expectwrite(32, false)
+	w.PutLe64(src)
+	expectwrite(64, true)
+	w.PutBe64(src)
+	expectwrite(64, false)
+	w.PutUint8(7, uint8(src&0xFF))
+	expectwrite(7, false)
+	w.PutInt8(7, int8(src&0xFF))
+	expectwrite(7, false)
+	w.PutUint16(15, uint16(src&0xFFFF))
+	expectwrite(15, false)
+	w.PutInt16(15, int16(src&0xFFFF))
+	expectwrite(15, false)
+	w.PutUint32(31, uint32(src&0xFFFFFFFF))
+	expectwrite(31, false)
+	w.PutInt32(31, int32(src&0xFFFFFFFF))
+	expectwrite(31, false)
+	w.PutUint64(64, src)
+	expectwrite(64, false)
+	w.PutInt64(64, int64(src))
+	expectwrite(64, false)
 }
 
 func TestBadSlices(t *testing.T) {
@@ -198,22 +250,22 @@ func BenchmarkWrites(b *testing.B) {
 	}
 	w := NewWriter(dst)
 	for _, v := range []WriteBench{
-		{"bit", 1, func(w *Writer, v uint64) { w.PutUint32(1, uint32(v)) }},
-		{"byte", 8, func(w *Writer, v uint64) { w.PutUint32(8, uint32(v)) }},
-		{"le16", 16, func(w *Writer, v uint64) { w.PutUint32Le(16, uint32(v)) }},
-		{"be16", 16, func(w *Writer, v uint64) { w.PutUint32(16, uint32(v)) }},
-		{"le32", 32, func(w *Writer, v uint64) { w.PutUint32Le(32, uint32(v)) }},
-		{"be32", 32, func(w *Writer, v uint64) { w.PutUint32(32, uint32(v)) }},
-		{"le64", 64, func(w *Writer, v uint64) { w.PutUint64Le(64, v) }},
-		{"be64", 64, func(w *Writer, v uint64) { w.PutUint64(64, v) }},
-		{"u8 7bits", 7, func(w *Writer, v uint64) { w.PutUint32(7, uint32(v)) }},
-		{"i8 7bits", 7, func(w *Writer, v uint64) { w.PutUint32(7, uint32(v)) }},
-		{"u16 15bits", 15, func(w *Writer, v uint64) { w.PutUint32(15, uint32(v)) }},
-		{"i16 15bits", 15, func(w *Writer, v uint64) { w.PutUint32(15, uint32(v)) }},
+		{"bit", 1, func(w *Writer, v uint64) { w.PutBit(v != 0) }},
+		{"byte", 8, func(w *Writer, v uint64) { w.PutByte(byte(v)) }},
+		{"le16", 16, func(w *Writer, v uint64) { w.PutLe16(uint16(v)) }},
+		{"be16", 16, func(w *Writer, v uint64) { w.PutBe16(uint16(v)) }},
+		{"le32", 32, func(w *Writer, v uint64) { w.PutLe32(uint32(v)) }},
+		{"be32", 32, func(w *Writer, v uint64) { w.PutBe32(uint32(v)) }},
+		{"le64", 64, func(w *Writer, v uint64) { w.PutLe64(v) }},
+		{"be64", 64, func(w *Writer, v uint64) { w.PutBe64(v) }},
+		{"u8 7bits", 7, func(w *Writer, v uint64) { w.PutUint8(7, uint8(v)) }},
+		{"i8 7bits", 7, func(w *Writer, v uint64) { w.PutInt8(7, int8(v)) }},
+		{"u16 15bits", 15, func(w *Writer, v uint64) { w.PutUint16(15, uint16(v)) }},
+		{"i16 15bits", 15, func(w *Writer, v uint64) { w.PutInt16(15, int16(v)) }},
 		{"u32 31bits", 31, func(w *Writer, v uint64) { w.PutUint32(31, uint32(v)) }},
-		{"i32 31bits", 31, func(w *Writer, v uint64) { w.PutUint32(31, uint32(v)) }},
+		{"i32 31bits", 31, func(w *Writer, v uint64) { w.PutInt32(31, int32(v)) }},
 		{"u64 63bits", 63, func(w *Writer, v uint64) { w.PutUint64(63, v) }},
-		{"i64 63bits", 63, func(w *Writer, v uint64) { w.PutUint64(63, v) }},
+		{"i64 63bits", 63, func(w *Writer, v uint64) { w.PutInt64(63, int64(v)) }},
 	} {
 		b.Run(v.name, func(bb *testing.B) {
 			bb.SetBytes(int64(v.bits * len(src)))
