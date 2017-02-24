@@ -20,7 +20,10 @@ type Writer struct {
 }
 
 var (
-	ErrOverflow  = errors.New("bit overflow")
+	// Trying to write too many bits
+	ErrOverflow = errors.New("bit overflow")
+
+	// Not enough bits to flush
 	ErrUnderflow = errors.New("bit underflow")
 )
 

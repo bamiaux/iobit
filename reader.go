@@ -86,7 +86,7 @@ func bswap32(val uint32) uint32 {
 	return uint32(bswap16(uint16(val>>16))) | uint32(bswap16(uint16(val)))<<16
 }
 
-// IsBit reads the next bit as a boolean.
+// Bit reads the next bit as a boolean.
 func (r *Reader) Bit() bool {
 	skip := min(r.idx>>3, r.max+7)
 	val := r.src[skip]
