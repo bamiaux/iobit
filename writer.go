@@ -107,7 +107,7 @@ func (w *Writer) PutByte(val byte) {
 
 // PutLe16 writes 16 bits in little-endian order.
 func (w *Writer) PutLe16(val uint16) {
-	w.PutUint32Le(16, uint32(val))
+	w.PutUint32(16, uint32(bswap16(val)))
 }
 
 // PutBe16 writes 16 bits in big-endian order.
@@ -117,7 +117,7 @@ func (w *Writer) PutBe16(val uint16) {
 
 // PutLe32 writes 32 bits in little-endian order.
 func (w *Writer) PutLe32(val uint32) {
-	w.PutUint32Le(32, val)
+	w.PutUint32(32, bswap32(val))
 }
 
 // PutBe32 writes 32 bits in big-endian order.
@@ -127,7 +127,8 @@ func (w *Writer) PutBe32(val uint32) {
 
 // PutLe64 writes 64 bits in little-endian order.
 func (w *Writer) PutLe64(val uint64) {
-	w.PutUint64Le(64, val)
+	w.PutLe32(uint32(val & 0xFFFFFFFF))
+	w.PutLe32(uint32(val >> 32 & 0xFFFFFFFF))
 }
 
 // PutBe64 writes 64 bits in big-endian order.
