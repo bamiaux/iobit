@@ -24,12 +24,12 @@ var (
 	ErrUnderflow = errors.New("bit underflow")
 )
 
-// NewWriter returns a new writer writing to <dst> byte array.
+// NewWriter returns a new writer writing to output byte array.
 func NewWriter(dst []byte) *Writer {
 	return &Writer{dst: dst}
 }
 
-// PutUint32 writes up to 32 <bits> from <val> in big-endian order.
+// PutUint32 writes up to 32 bits in big-endian order.
 func (w *Writer) PutUint32(bits uint, val uint32) {
 	u := uint64(val)
 	// manually inlined until compiler improves
@@ -47,7 +47,7 @@ func (w *Writer) PutUint32(bits uint, val uint32) {
 	w.cache |= u
 }
 
-// PutUint64 writes up to 64 <bits> from <val> in big-endian order.
+// PutUint64 writes up to 64 bits in big-endian order.
 func (w *Writer) PutUint64(bits uint, val uint64) {
 	if bits <= 32 {
 		w.PutUint32(bits, uint32(val))
@@ -151,7 +151,7 @@ func (w *Writer) Flush() error {
 	return nil
 }
 
-// Write writes a whole slice <p> at once.
+// Write writes a whole slice p at once.
 // Returns an error if the writer is not byte-aligned.
 func (w *Writer) Write(p []byte) (int, error) {
 	err := w.Flush()
