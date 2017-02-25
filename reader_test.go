@@ -67,10 +67,10 @@ func TestSigned(t *testing.T) {
 func TestReadHelpers(t *testing.T) {
 	buf := []byte{0x41}
 	r := NewReader(buf[:])
-	expect(t, uint(8), r.Bits())
+	expect(t, uint(8), r.LeftBits())
 	r.Skip(1)
-	expect(t, uint(1), r.Index())
-	expect(t, uint(7), r.Bits())
+	expect(t, uint(1), r.At())
+	expect(t, uint(7), r.LeftBits())
 	for i := 0; i < 8; i++ {
 		p := r.Peek()
 		expect(t, true, p.Bit())
@@ -81,14 +81,14 @@ func TestReadHelpers(t *testing.T) {
 		expect(t, false, r.Bit())
 	}
 	expect(t, true, r.Bit())
-	expect(t, uint(8), r.Index())
-	expect(t, uint(0), r.Bits())
-	expect(t, 0, len(r.Bytes()))
+	expect(t, uint(8), r.At())
+	expect(t, uint(0), r.LeftBits())
+	expect(t, 0, len(r.LeftBytes()))
 	expect(t, nil, r.Error())
 	r.Skip(1)
-	expect(t, uint(9), r.Index())
-	expect(t, uint(0), r.Bits())
-	expect(t, 0, len(r.Bytes()))
+	expect(t, uint(9), r.At())
+	expect(t, uint(0), r.LeftBits())
+	expect(t, 0, len(r.LeftBytes()))
 	expect(t, ErrOverflow, r.Error())
 	// more helpers
 	d := []byte{
@@ -117,11 +117,11 @@ func TestBadSliceRead(t *testing.T) {
 	buf := []byte{0x01, 0x02, 0x03}
 	r := NewReader(buf[:])
 	r.Skip(8)
-	compare(t, r.Bytes(), buf[1:])
+	compare(t, r.LeftBytes(), buf[1:])
 	r.Skip(16)
-	expect(t, 0, len(r.Bytes()))
+	expect(t, 0, len(r.LeftBytes()))
 	r.Skip(1)
-	expect(t, 0, len(r.Bytes()))
+	expect(t, 0, len(r.LeftBytes()))
 }
 
 var Output int64
@@ -163,7 +163,7 @@ func BenchmarkReads(b *testing.B) {
 			bb.SetBytes(int64(len(buf)))
 			for i := 0; i < bb.N; i++ {
 				r.Reset()
-				for r.Bits() > 0 {
+				for r.LeftBits() > 0 {
 					Output += v.op(&r)
 				}
 			}

@@ -202,6 +202,21 @@ func (r *Reader) Int64(bits uint) int64 {
 	return val<<bits | int64(r.read32(bits))
 }
 
+// Bytes returns a byte-array of input size.
+func (r *Reader) Bytes(size int) []byte {
+	d := r.LeftBytes()
+	if size > len(d) {
+		size = len(d)
+	}
+	r.idx += uint(size * 8)
+	return d[:size]
+}
+
+// String returns a string of input size.
+func (r *Reader) String(size int) string {
+	return string(r.Bytes(size))
+}
+
 // Peek returns a reader copy.
 // Useful to read data without advancing the original reader.
 func (r *Reader) Peek() *Reader {
@@ -214,24 +229,29 @@ func (r *Reader) Skip(bits uint) {
 	r.idx += bits
 }
 
-// Index returns the current reader position in bits.
-func (r *Reader) Index() uint {
+// At returns the current reader position in bits.
+func (r *Reader) At() uint {
 	return r.idx
 }
 
-// Bits returns the number of bits left to read.
-func (r *Reader) Bits() uint {
+// LeftBits returns the number of bits left to read.
+func (r *Reader) LeftBits() uint {
 	return r.size<<3 - min(r.idx, r.size<<3)
 }
 
-// Bytes returns a slice of the contents of the unread reader portion.
+// LeftBytes returns a slice of the contents of the unread reader portion.
 // Note that this slice is byte aligned even if the reader is not.
-func (r *Reader) Bytes() []byte {
+func (r *Reader) LeftBytes() []byte {
 	skip := r.idx >> 3
 	if skip >= r.size {
 		return r.src[:0]
 	}
 	return r.src[skip:r.size]
+}
+
+// Reset resets the reader to its initial position.
+func (r *Reader) Reset() {
+	r.idx = 0
 }
 
 // Error returns whether the reader encountered an error.
@@ -240,9 +260,4 @@ func (r *Reader) Error() error {
 		return ErrOverflow
 	}
 	return nil
-}
-
-// Reset resets the reader to its initial position.
-func (r *Reader) Reset() {
-	r.idx = 0
 }
