@@ -1,4 +1,4 @@
-#iobit [![GoDoc](https://godoc.org/github.com/bamiaux/iobit/web?status.png)](https://godoc.org/github.com/bamiaux/iobit) [![Build Status](https://travis-ci.org/bamiaux/iobit.png)](https://travis-ci.org/bamiaux/iobit)
+# iobit [![GoDoc](https://godoc.org/github.com/bamiaux/iobit/web?status.png)](https://godoc.org/github.com/bamiaux/iobit) [![Build Status](https://travis-ci.org/bamiaux/iobit.png)](https://travis-ci.org/bamiaux/iobit)
 Package iobit provides primitives for reading & writing bits The main purpose of this library is to remove the need to write custom bit-masks when reading or writing bitstreams, and to ease maintenance.
 
 Download:
